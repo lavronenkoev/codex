@@ -2,129 +2,234 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Приёмная 23.02. Спаси мир от СПАМа</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>P&L калькулятор входящих звонков</title>
   <style>
-    :root{--bg:#0b0f14;--card:#121a25;--bd:#2a3444;--txt:#d5e2f1;--muted:#90a1b8;--g:#27e57f;--r:#ff5572;--y:#ffd166}
-    *{box-sizing:border-box} body{margin:0;background:radial-gradient(900px 500px at 20% -20%,#1b2433,var(--bg));color:var(--txt);font-family:Inter,system-ui,sans-serif}
-    .hidden{display:none!important}.wrap{max-width:1100px;margin:0 auto;padding:16px}.card{background:linear-gradient(180deg,#141d29,#111924);border:1px solid var(--bd);border-radius:14px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}
-    input,select,button{font:inherit}.field,input,select{background:#0e151f;border:1px solid var(--bd);color:var(--txt);padding:10px;border-radius:10px}
-    button{padding:10px 12px;border-radius:10px;border:1px solid #315273;background:#24384e;color:#eef6ff;cursor:pointer}.primary{background:#1d9257;border-color:#1d9257}
-    h1{font-size:clamp(28px,5vw,42px);margin:8px 0} h2{margin:0 0 8px;font-size:20px} .muted{color:var(--muted)}
-    .topbar{position:sticky;top:0;z-index:5;background:rgba(11,15,20,.85);backdrop-filter:blur(6px);padding:10px 0;margin-bottom:10px}
-    .rank-box{padding:12px;margin-bottom:12px}
-    .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{background:#111a27;border:1px solid var(--bd);border-radius:10px;padding:8px}
-    .board{padding:12px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.table-wrap{overflow:auto;border:1px solid var(--bd);border-radius:10px}
-    table{width:100%;border-collapse:collapse;min-width:980px}th,td{padding:8px;border-bottom:1px solid #202b3b;white-space:nowrap;font-size:13px}th{position:sticky;top:0;background:#182435}
-    .badge{font-size:12px;padding:3px 8px;border-radius:999px;display:inline-block}.b1{background:#4b3c09;color:#ffe08f}.b2{background:#2d3648;color:#d3e7ff}.b3{background:#3d3330;color:#ffd8bd}.b4{background:#1f2b3a;color:#b9cce0}
-    #access,#main,#game{min-height:100vh}.center{display:grid;place-items:center;padding:16px}.access-card{width:min(460px,100%);padding:20px}
-    .modal-bg{position:fixed;inset:0;background:rgba(5,9,14,.74);display:grid;place-items:center;padding:14px;z-index:9}.modal{width:min(980px,100%);max-height:90vh;overflow:auto;padding:14px}
-    .chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:10px}.char{border:1px solid var(--bd);border-radius:12px;padding:8px;background:#0f1722;cursor:pointer}.char.active{border-color:var(--g)}
-    .char img{width:48px;height:48px;border-radius:10px;object-fit:cover;border:1px solid #345}
-    #gameCanvas{width:100%;max-width:1100px;border:1px solid var(--bd);border-radius:12px;background:#0f1825;display:block}
-    .hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.hud>div{border:1px solid var(--bd);background:#101926;border-radius:10px;padding:8px}
-    .bar{height:10px;border:1px solid var(--bd);background:#172334;border-radius:99px;overflow:hidden}.bar>div{height:100%;width:0;background:linear-gradient(90deg,#1fca6e,#ffd166,#ff5572)}
-    .count{position:absolute;inset:0;display:grid;place-items:center;font-size:88px;font-weight:800;text-shadow:0 10px 24px #000}
-    @media(max-width:780px){.stats,.hud{grid-template-columns:1fr}.fixed-play{position:fixed;left:12px;right:12px;bottom:12px;z-index:8}}
+    body { font-family: Arial, sans-serif; margin: 0; background:#f4f6fa; color:#1f2a37; }
+    header { background:#0f172a; color:white; padding:12px 16px; }
+    .wrap { padding:16px; max-width:1400px; margin:0 auto; }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .tabs button { border:1px solid #cbd5e1; background:white; padding:8px 12px; border-radius:8px; cursor:pointer; }
+    .tabs button.active { background:#2563eb; color:white; border-color:#2563eb; }
+    .panel { background:white; border:1px solid #dbe3ef; border-radius:10px; padding:12px; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { border:1px solid #e5e7eb; padding:6px; text-align:left; }
+    th { background:#f8fafc; }
+    input, select { width:100%; box-sizing:border-box; padding:6px; }
+    .grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .small { font-size:12px; color:#475569; }
+    .kpi { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+    .kpi .card { border:1px solid #dbe3ef; border-radius:8px; padding:8px; background:#f8fafc; }
+    .clickable { cursor:pointer; color:#1d4ed8; text-decoration:underline; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .modalBg { position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; }
+    .modal { background:white; max-width:720px; width:95%; max-height:80vh; overflow:auto; border-radius:10px; padding:14px; }
+    .info { border:1px solid #94a3b8; background:#eef2ff; border-radius:999px; width:18px; height:18px; font-size:11px; cursor:pointer; }
+    .chart { width:100%; height:220px; border:1px solid #dbe3ef; border-radius:8px; background:white; }
   </style>
 </head>
 <body>
-<section id="access" class="center hidden"><div class="card access-card"><h1>Приёмная 23.02. Спаси мир от СПАМа</h1><p class="muted">Введите код доступа</p><div class="row"><input id="pass" type="password" class="grow"/><button id="loginBtn" class="primary">Войти</button></div><p id="loginMsg" class="muted"></p></div></section>
-
-<section id="main" class="hidden"><div class="wrap">
-  <div class="topbar"><div class="row"><div class="grow"><h1 style="margin:0">Приёмная 23.02</h1></div><button id="playBtn" class="primary fixed-play">Играть</button><button id="logoutBtn">Выйти</button></div></div>
-  <div class="card rank-box"><h2>Рейтинг персонажей</h2><div id="charStats" class="stats"></div></div>
-  <div class="card board">
-    <div class="toolbar">
-      <select id="mode"><option value="best">Лучшие по никам</option><option value="all">Все забеги</option></select>
-      <select id="charFilter"></select>
-      <button id="reload">Обновить</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>Место</th><th>Ранг</th><th>Ник</th><th>Персонаж</th><th>Баллы</th><th>Время (с)</th><th>P useful</th><th>R useful</th><th>P spam</th><th>R spam</th><th>Acc</th><th>Дата</th></tr></thead><tbody id="rows"></tbody></table></div>
+  <header><b>Локальный P&L калькулятор - входящие звонки</b></header>
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
   </div>
-</div></section>
 
-<section id="game" class="hidden"><div class="wrap">
-  <div class="hud"><div><div class="muted">Баллы</div><b id="hScore">0</b></div><div><div class="muted">Таймер</div><b id="hTime">0.0</b></div><div><div class="muted">Комбо</div><b id="hCombo">0</b></div><div><div class="muted">Эффект</div><b id="hFx">—</b></div></div>
-  <div style="margin-bottom:8px"><div class="muted">Недовольство</div><div class="bar"><div id="hBar"></div></div><div id="hD">0%</div></div>
-  <div style="position:relative"><canvas id="gameCanvas" width="1100" height="420"></canvas><div id="count" class="count hidden"></div></div>
-  <div class="row" style="margin-top:8px"><div class="muted grow">Управление: Space / ↑</div><button id="toMain">В главное меню</button></div><p id="gMsg" class="muted"></p>
-</div></section>
-
-<div id="modal" class="modal-bg hidden"><div class="card modal"><div class="row"><input id="nick" placeholder="Ник" class="grow" maxlength="24"/><button id="start" class="primary">Старт</button><button id="close">Отмена</button></div><div id="chars" class="chars"></div></div></div>
+  <div class="modalBg" id="modalBg"><div class="modal"><div class="row" style="justify-content:space-between"><h3 id="modalTitle"></h3><button onclick="closeModal()">Закрыть</button></div><pre id="modalBody" style="white-space:pre-wrap"></pre></div></div>
 
 <script>
-const API='';const LS_TOKEN='p2302_token';const LS_NICK='p2302_nick';
-const R={spawnIntervalStartMs:1050,spawnIntervalMinMs:550,spawnScalePer10s:.94,speedStart:9,speedScalePer10s:1.09,speedMax:18,vipCooldownMs:16000,vipMinDissat:30,probs:{GREEN:.605,RED:.38,VIP:.015},jumpVelocity:-15.5,gravity:.9,playerW:64,playerH:70,groundY:336,dissatisfactionMax:100,scoreGreen:1,scoreRedJump:1,greenMissPenalty:10,redCatchPenalty:5,vipCatchDelta:-20,vipMissDelta:20,slowDurationMs:2500,slowSpeedFactor:.8,slowSpawnFactor:1.10,slowCooldownMs:22000};
-const C=[
-{id:'ilikaev',name:'Иликаев Алексей',role:'Разработчик процедур',slogan:'По регламенту — значит правильно.',avatarUrl:'assets/characters/ilikaev.png',ability:{key:'RED_JUMP_REDUCES_DISSAT',params:{dissatDeltaPerRedJump:-1,clampMin:0}}},
-{id:'titov',name:'Титов Роман',role:'Системный аналитик',slogan:'Я вижу паттерны.',avatarUrl:'assets/characters/titov.png',ability:{key:'RED_AUTO_JUMP_CHANCE',params:{chance:.10}}},
-{id:'rusakov',name:'Русаков Олег',role:'UX-редактор',slogan:'Без боли и лишнего шума.',avatarUrl:'assets/characters/rusakov.png',ability:{key:'GREEN_MISS_PENALTY_OVERRIDE',params:{greenMissPenaltyPct:8}}},
-{id:'andreev',name:'Андреев Александр',role:'Лид продуктовой аналитики',slogan:'Главное — метрики.',avatarUrl:'assets/characters/andreev.png',ability:{key:'GREEN_SCORE_OVERRIDE',params:{greenScore:2}}},
-{id:'galkin',name:'Галкин Евгений',role:'Лид разработки',slogan:'Стабильно в проде.',avatarUrl:'assets/characters/galkin.png',ability:{key:'RED_CATCH_PENALTY_OVERRIDE',params:{redCatchPenaltyPct:4}}},
-{id:'pakulin',name:'Пакулин Александр',role:'Системный аналитик',slogan:'Сначала схема, потом звонки.',avatarUrl:'assets/characters/pakulin.png',ability:{key:'VIP_RULESET_OVERRIDE',params:{vipCooldownMs:12000,vipCatchDeltaPct:-15,vipMissDeltaPct:15}}},
-{id:'sayafarov',name:'Саяфаров Денис',role:'QA Auto',slogan:'Один баг — бесплатно.',avatarUrl:'assets/characters/sayafarov.png',ability:{key:'ONE_MISTAKE_NO_PENALTY',params:{uses:1}}},
-{id:'zaichkin',name:'Заичкин Данил',role:'Developer',slogan:'Хотфикс на лету.',avatarUrl:'assets/characters/zaichkin.png',ability:{key:'POST_MISTAKE_SHIELD_NO_SCORE',params:{shieldMs:2000}}},
-{id:'krivenko',name:'Кривенко Евгений',role:'Developer',slogan:'Серию не ломаем.',avatarUrl:'assets/characters/krivenko.png',ability:{key:'ONE_TIME_COMBO_SAVE',params:{uses:1}}},
-{id:'evdokimov',name:'Евдокимов Даниил',role:'Developer',slogan:'Оптимизация решает.',avatarUrl:'assets/characters/evdokimov.png',ability:{key:'SCORE_MULTIPLIER',params:{multiplier:1.10}}},
-{id:'pluzhnik',name:'Плужник Егор',role:'Developer',slogan:'Чистая линия.',avatarUrl:'assets/characters/pluzhnik.png',ability:{key:'GREEN_STREAK_HEAL_WITH_CAP',params:{everyGreens:3,healPct:3,capTotalHealPct:12,clampMin:0}}},
-{id:'esyunin',name:'Есюнин Никита',role:'Developer',slogan:'Чую полезный звонок.',avatarUrl:'assets/characters/esyunin.png',ability:{key:'GREEN_AUTO_CATCH_CHANCE',params:{chance:.10}}},
-{id:'mordvinov',name:'Мордвинов Сергей',role:'Developer',slogan:'Система выдержит.',avatarUrl:'assets/characters/mordvinov.png',ability:{key:'DISSAT_THRESHOLD_OVERRIDE',params:{thresholdPct:105}}}
+const fmt=(v)=>Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:4});
+const money=(v)=>Number(v||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+const parseN=(v)=>Number(v)||0;
+const TZ='Europe/Tallinn';
+
+const infoText={
+  interconnect:'Ставка выручки за секунду тарифицируемого времени. Формула: руб/мин / 60.',
+  stt:'Стоимость распознавания 1 секунды входящей речи.',
+  share:'Доля сценария от базы UnknownCallsBase. Все сценарии задаются в процентах/долях от базы.',
+  bill3:'Если выключено, первые 3 секунды не тарифицируются: billable=max(0,total-3).',
+  segments:'Сегменты используются для расчета доли not_home и revenue_eligible.'
+};
+
+function d(s){return new Date(s+'T00:00:00');}
+function dateStr(dt){return dt.toISOString().slice(0,10);} 
+function* days(start,end){for(let x=new Date(start); x<=end; x.setDate(x.getDate()+1)) yield new Date(x);} 
+function monthKey(dt){return dt.toISOString().slice(0,7);} 
+function daysInMonth(y,m){return new Date(y,m+1,0).getDate();}
+
+const fullScenarioDefs=[
+['S1_Transfer_Answer','S1 transfer answer'],['S1_Transfer_Missed_ToSecretary','S1 transfer missed to secretary'],['S1_Spam','S1 spam'],['S1_Unknown_ToNext','S1 unknown to next'],
+['S2_Transfer_Answer','S2 transfer answer'],['S2_Transfer_Missed_ToSecretary','S2 transfer missed to secretary'],['S2_Spam','S2 spam'],['S2_Unknown_ToNext','S2 unknown to next'],
+['S3_Transfer_Answer','S3 transfer answer'],['S3_Transfer_Missed_ToSecretary','S3 transfer missed to secretary'],['S3_Spam','S3 spam'],['S3_Unknown_ToNext','S3 unknown to next'],
+['G_Transfer_Answer','G transfer answer'],['G_Transfer_Missed_ToSecretary','G transfer missed to secretary'],['G_Transfer_Missed_NoSecretary','G transfer missed no secretary'],['G_NonUseful_Spam','G non useful spam'],['G_NonUseful_Hangup','G non useful hangup'],['G_Hangup_Unknown','G hangup unknown'],['Z_RobotHello_NoFirstPhrase','Robot hello no first phrase']
 ];
-const E=id=>document.getElementById(id); const S=(a,b)=>Math.max(a,Math.min(b,Infinity));
-const state={token:localStorage.getItem(LS_TOKEN)||'',selected:C[0].id,game:null,img:{}};
-const ui={access:E('access'),main:E('main'),game:E('game'),rows:E('rows'),charStats:E('charStats')};
 
-async function api(path,opt={}){const h={'Content-Type':'application/json',...(opt.headers||{})};if(state.token)h.Authorization='Bearer '+state.token;const r=await fetch(API+path,{...opt,headers:h});if(r.status===401){state.token='';localStorage.removeItem(LS_TOKEN);show('access');throw new Error('401');}if(!r.ok) throw new Error(await r.text());return r.json();}
-function show(k){ui.access.classList.add('hidden');ui.main.classList.add('hidden');ui.game.classList.add('hidden');ui[k].classList.remove('hidden');}
-function ch(id){return C.find(x=>x.id===id)||C[0]} function pct(x){return (x*100).toFixed(1)+'%'} function sec(ms){return (ms/1000).toFixed(1)}
-function m(r){const t=r.useful_caught+r.useful_missed+r.spam_jumped+r.spam_caught;return{pu:r.useful_caught/Math.max(1,r.useful_caught+r.spam_caught),ru:r.useful_caught/Math.max(1,r.useful_caught+r.useful_missed),ps:r.spam_jumped/Math.max(1,r.spam_jumped+r.useful_missed),rs:r.spam_jumped/Math.max(1,r.spam_jumped+r.spam_caught),a:(r.useful_caught+r.spam_jumped)/Math.max(1,t)}}
-function rank(i){if(i===0)return['👑','Главный босс Приёмной','b1'];if(i===1)return['🥇','Хранитель звонков','b2'];if(i===2)return['🥈','Защитник от спама','b3'];return['🥉','Стажёр Приёмной','b4'];}
+function baseScenario(id,name){return {id,name_ru:name,enabled:false,share_of_unknown:0,timing:{sec_wait:0,sec_outgoing:0,sec_incoming:0},billing:{bill_first_3_sec:false},flags:{use_stt:false,use_llm:false,use_sms:false,sms_rule_tag:'none'},llm:{llm_calls_per_call:1.91}};}
+function currentPreset(){
+  const map=Object.fromEntries(fullScenarioDefs.map(([id,n])=>[id,baseScenario(id,n)]));
+  const set=(id,obj)=>Object.assign(map[id],obj,{enabled:true});
+  set('S1_Transfer_Answer',{share_of_unknown:0.44444,timing:{sec_wait:0,sec_outgoing:3,sec_incoming:0},billing:{bill_first_3_sec:true}});
+  set('S1_Transfer_Missed_ToSecretary',{share_of_unknown:0.09756,timing:{sec_wait:0,sec_outgoing:6,sec_incoming:6},flags:{use_stt:true,use_llm:false,use_sms:false,sms_rule_tag:'none'},billing:{bill_first_3_sec:false}});
+  set('S1_Spam',{share_of_unknown:0.063,timing:{sec_wait:2,sec_outgoing:8,sec_incoming:14},flags:{use_stt:true,use_llm:false,use_sms:true,sms_rule_tag:'spam_like'},billing:{bill_first_3_sec:false}});
+  set('S3_Transfer_Answer',{share_of_unknown:0.016,timing:{sec_wait:0,sec_outgoing:2,sec_incoming:4},flags:{use_stt:true,use_llm:false,use_sms:false,sms_rule_tag:'none'},billing:{bill_first_3_sec:false}});
+  set('Z_RobotHello_NoFirstPhrase',{share_of_unknown:0.183,timing:{sec_wait:0,sec_outgoing:2,sec_incoming:0},flags:{use_stt:false,use_llm:false,use_sms:true,sms_rule_tag:'robot_no_phrase'},billing:{bill_first_3_sec:false}});
+  set('G_Transfer_Answer',{share_of_unknown:0.03034,timing:{sec_wait:4,sec_outgoing:6,sec_incoming:4},flags:{use_stt:true,use_llm:true,use_sms:false,sms_rule_tag:'none'},llm:{llm_calls_per_call:1.91},billing:{bill_first_3_sec:true}});
+  set('G_Transfer_Missed_ToSecretary',{share_of_unknown:0.00333,timing:{sec_wait:20,sec_outgoing:2,sec_incoming:4},flags:{use_stt:true,use_llm:true,use_sms:false,sms_rule_tag:'none'},llm:{llm_calls_per_call:1.91},billing:{bill_first_3_sec:false}});
+  set('G_Transfer_Missed_NoSecretary',{share_of_unknown:0.00333,timing:{sec_wait:10,sec_outgoing:2,sec_incoming:4},flags:{use_stt:true,use_llm:true,use_sms:false,sms_rule_tag:'none'},llm:{llm_calls_per_call:1.91},billing:{bill_first_3_sec:false}});
+  set('G_NonUseful_Spam',{share_of_unknown:0.0795,timing:{sec_wait:2,sec_outgoing:8,sec_incoming:14},flags:{use_stt:true,use_llm:true,use_sms:true,sms_rule_tag:'spam_like'},llm:{llm_calls_per_call:1.91},billing:{bill_first_3_sec:false}});
+  set('G_NonUseful_Hangup',{share_of_unknown:0.0795,timing:{sec_wait:0,sec_outgoing:3,sec_incoming:7},flags:{use_stt:true,use_llm:true,use_sms:true,sms_rule_tag:'hangup_unknown'},llm:{llm_calls_per_call:1.91},billing:{bill_first_3_sec:false}});
+  const arr=Object.values(map); const sum=arr.reduce((a,s)=>a+s.share_of_unknown,0); if(sum>0) arr.forEach(s=>s.share_of_unknown/=sum);
+  return arr;
+}
 
-async function loadBoard(){const mode=E('mode').value,character=E('charFilter').value||'all';const data=await api(`/api/runs?mode=${mode}&character=${encodeURIComponent(character)}&limit=200`);ui.rows.innerHTML=(data.rows||[]).map((r,i)=>{const z=m(r),rk=rank(i);return `<tr><td>${i+1}</td><td><span class='badge ${rk[2]}'>${rk[0]} ${rk[1]}</span></td><td>${r.nick_display}</td><td>${ch(r.character_id).name}</td><td>${r.score}</td><td>${sec(r.survival_ms)}</td><td>${pct(z.pu)}</td><td>${pct(z.ru)}</td><td>${pct(z.ps)}</td><td>${pct(z.rs)}</td><td>${pct(z.a)}</td><td>${new Date(r.created_at).toLocaleString('ru-RU')}</td></tr>`}).join('')||'<tr><td colspan="12">Нет данных</td></tr>'}
-async function loadSummary(){const data=await api('/api/characters/summary');const map=new Map(C.map(c=>[c.id,{id:c.id,name:c.name,plays:0,bestS:0,bestT:0,uc:0,um:0,sj:0,sc:0,a:0}]));(data.rows||[]).forEach(r=>{const x=map.get(r.character_id);if(!x)return;x.plays=r.plays;x.bestS=r.best_score;x.bestT=r.best_survival;x.uc=r.total_useful_caught;x.um=r.total_useful_missed;x.sj=r.total_spam_jumped;x.sc=r.total_spam_caught;const t=x.uc+x.um+x.sj+x.sc;x.a=(x.uc+x.sj)/Math.max(1,t)});const arr=[...map.values()];const p=[...arr].sort((a,b)=>b.plays-a.plays)[0],s=[...arr].sort((a,b)=>b.bestT-a.bestT)[0],a=[...arr].sort((x,y)=>y.a-x.a)[0],n=[...arr].sort((x,y)=>x.a-y.a)[0];ui.charStats.innerHTML=[['Самый популярный',`${p.name} (${p.plays})`],['Самый выживаемый',`${s.name} (${sec(s.bestT)}с)`],['Самый точный',`${a.name} (${pct(a.a)})`],['Самый неточный',`${n.name} (${pct(n.a)})`]].map(x=>`<div class='stat'><div class='muted'>${x[0]}</div><b>${x[1]}</b></div>`).join('')}
-async function refresh(){await Promise.all([loadBoard(),loadSummary()])}
+const state={tab:'period',period:{timezone:TZ,mode:'year_2026',startDate:'2026-03-01',endDate:'2026-12-31'},rollout:{mode:'calls',callTimepoints:[{date:'2026-02-01',unknownCallsPerDay:0},{date:'2026-03-01',unknownCallsPerDay:0}],userTimepoints:[{date:'2026-02-24',users:200},{date:'2026-03-01',users:400},{date:'2026-03-15',users:15000},{date:'2026-04-15',users:30000},{date:'2026-05-15',users:3800000},{date:'2026-06-01',users:3850000},{date:'2026-07-01',users:3900000},{date:'2026-08-01',users:3950000},{date:'2026-09-01',users:4000000},{date:'2026-10-01',users:4050000},{date:'2026-11-01',users:4100000},{date:'2026-12-01',users:4150000}],unknownCallsPerUserPerDay:0},
+segments:{rows:[{home_flag:1,same_fact:0,from_home:0,count:1541433779},{home_flag:1,same_fact:1,from_home:1,count:3295135084},{home_flag:0,same_fact:0,from_home:0,count:328555732},{home_flag:0,same_fact:0,from_home:1,count:155373983},{home_flag:0,same_fact:1,from_home:0,count:335498215}],override_share_not_home_enabled:false,override_share_not_home_value:0.1449,override_share_revenue_eligible_enabled:false,override_share_revenue_eligible_value:0.3579},
+constants:{interconnect_rub_per_min:0.93,stt_rub_per_sec:0.0011,llm_rub_per_1m_tokens:45,tokens_out_per_request:1337,tokens_in_per_request:50,token_weight_in:4,tts_rub_per_char:0.0086,tts_unique_phrases_per_year:240000,tts_avg_chars_per_phrase:40,sms_rub_per_sms:0.035,sms_spam_like_share:0.3,delivery_region_rub_per_call:1.02,apply_delivery_region_on:'TotalCallsServed',radius_mts_rub_per_min:0.12,radius_t2_rub_per_min:0.035,share_mts:0,apply_radius_on:'TotalCallsServed',radius_mode:'use_distribution',avg_radio_minutes_per_call_manual:1.0,radio_distribution:[{avg_radio_per_minute:0.5,cnt:1},{avg_radio_per_minute:1.0,cnt:1}]},
+payroll:Array.from({length:12},()=>9930000),scenarios:currentPreset()};
 
-async function login(){try{const d=await api('/api/login',{method:'POST',body:JSON.stringify({password:E('pass').value})});state.token=d.token;localStorage.setItem(LS_TOKEN,d.token);show('main');await refresh();}catch{E('loginMsg').textContent='Неверный код доступа';}}
-async function bootstrap(){E('charFilter').innerHTML='<option value="all">Все персонажи</option>'+C.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');if(state.token){try{await api('/api/me');show('main');await refresh();return;}catch{}}show('access')}
+function derivedShares(){
+  const total=state.segments.rows.reduce((a,r)=>a+parseN(r.count),0)||1;
+  const notHome=state.segments.rows.filter(r=>parseN(r.home_flag)===0).reduce((a,r)=>a+parseN(r.count),0)/total;
+  const sameFact=state.segments.rows.filter(r=>parseN(r.same_fact)===1).reduce((a,r)=>a+parseN(r.count),0)/total;
+  const revElig=1-sameFact;
+  return {total,notHome,sameFact,revElig,notHomeEff:state.segments.override_share_not_home_enabled?parseN(state.segments.override_share_not_home_value):notHome,revEff:state.segments.override_share_revenue_eligible_enabled?parseN(state.segments.override_share_revenue_eligible_value):revElig};
+}
 
-function renderChars(){E('chars').innerHTML=C.map(c=>`<div class='char ${c.id===state.selected?'active':''}' data-id='${c.id}'><div class='row'><img src='${c.avatarUrl}'/><div><b>${c.name}</b><div class='muted'>${c.role}</div></div></div><div class='muted'>${c.slogan}</div></div>`).join('');[...E('chars').children].forEach(x=>x.onclick=()=>{state.selected=x.dataset.id;renderChars()})}
+function stepValue(points,dt,key){
+  const arr=[...points].sort((a,b)=>a.date.localeCompare(b.date));
+  let v=0; for(const p of arr){ if(p.date<=dateStr(dt)) v=parseN(p[key]); else break; } return v;
+}
+function unknownCallsForDay(dt){
+  if(state.rollout.mode==='calls') return stepValue(state.rollout.callTimepoints,dt,'unknownCallsPerDay');
+  return stepValue(state.rollout.userTimepoints,dt,'users')*parseN(state.rollout.unknownCallsPerUserPerDay);
+}
+function llmCostPerRequest(){const c=state.constants;return (parseN(c.tokens_out_per_request)+parseN(c.token_weight_in)*parseN(c.tokens_in_per_request))*(parseN(c.llm_rub_per_1m_tokens)/1_000_000);} 
+function secBillable(s){const t=parseN(s.timing.sec_wait)+parseN(s.timing.sec_outgoing)+parseN(s.timing.sec_incoming);return s.billing.bill_first_3_sec?t:Math.max(0,t-3);} 
+function smsCountByRule(s,calls){ if(!s.flags.use_sms) return 0; if(s.id==='Z_RobotHello_NoFirstPhrase'||s.id==='G_NonUseful_Hangup'||s.id==='G_Hangup_Unknown') return calls; if((s.id||'').includes('Spam')) return calls*parseN(state.constants.sms_spam_like_share); return 0; }
+function avgRadio(){const c=state.constants;if(c.radius_mode==='use_manual_avg') return parseN(c.avg_radio_minutes_per_call_manual); const sum=c.radio_distribution.reduce((a,r)=>a+parseN(r.avg_radio_per_minute)*parseN(r.cnt),0); const n=c.radio_distribution.reduce((a,r)=>a+parseN(r.cnt),0)||1; return sum/n;}
 
-function preload(){['assets/phone_green.png','assets/phone_red.png','assets/phone_vip.png',...C.map(c=>c.avatarUrl)].forEach(src=>{const i=new Image();i.src=src;state.img[src]=i;});}
-function applyAbility(g){const p=g.character.ability.params;switch(g.character.ability.key){case'GREEN_MISS_PENALTY_OVERRIDE':g.greenMissPenalty=p.greenMissPenaltyPct;break;case'GREEN_SCORE_OVERRIDE':g.greenScore=p.greenScore;break;case'RED_CATCH_PENALTY_OVERRIDE':g.redCatchPenalty=p.redCatchPenaltyPct;break;case'VIP_RULESET_OVERRIDE':g.vipCooldownMs=p.vipCooldownMs;g.vipCatchDelta=p.vipCatchDeltaPct;g.vipMissDelta=p.vipMissDeltaPct;break;case'ONE_MISTAKE_NO_PENALTY':g.noPenalty=p.uses;break;case'ONE_TIME_COMBO_SAVE':g.comboSave=p.uses;break;case'SCORE_MULTIPLIER':g.mul=p.multiplier;break;case'GREEN_AUTO_CATCH_CHANCE':g.greenAuto=p.chance;break;case'RED_AUTO_JUMP_CHANCE':g.redAuto=p.chance;break;case'DISSAT_THRESHOLD_OVERRIDE':g.threshold=p.thresholdPct;break;}}
-function startGame(nick,character){state.game={nick,character,running:true,start:performance.now(),last:performance.now(),player:{x:100,y:R.groundY-R.playerH,vy:0,on:true},objs:[],parts:[],spawnT:0,nextSpawn:R.spawnIntervalStartMs,lastVip:-1e12,score:0,d:0,threshold:R.dissatisfactionMax,usefulCaught:0,usefulMissed:0,spamJumped:0,spamCaught:0,combo:0,streak:0,slowUntil:0,slowCdUntil:0,shieldUntil:0,noPenalty:0,comboSave:0,totalHeal:0,fx:'—',jump:false,mul:1,greenScore:R.scoreGreen,greenMissPenalty:R.greenMissPenalty,redCatchPenalty:R.redCatchPenalty,vipCooldownMs:R.vipCooldownMs,vipCatchDelta:R.vipCatchDelta,vipMissDelta:R.vipMissDelta,greenAuto:0,redAuto:0};applyAbility(state.game);countdown()}
-function penalty(g,val){if(performance.now()<g.shieldUntil)return;if(g.noPenalty>0){g.noPenalty--;g.fx='Откат';return;}g.d+=val}
-function add(g,v){if(performance.now()<g.shieldUntil)return;g.score+=Math.round(v*g.mul)}
-function miss(g){if(g.comboSave>0){g.comboSave--;g.fx='Серия сохранена';return;}g.combo=0;g.streak=0;if(g.character.ability.key==='POST_MISTAKE_SHIELD_NO_SCORE')g.shieldUntil=performance.now()+g.character.ability.params.shieldMs}
-function spawnType(g,t){const vip=g.d>=R.vipMinDissat&&t-g.lastVip>=g.vipCooldownMs;let x=Math.random();if(vip&&x<R.probs.VIP)return'VIP';x=vip?(x-R.probs.VIP)/(1-R.probs.VIP):x;return x<R.probs.GREEN?'GREEN':'RED'}
-function part(g,x,y,c){for(let i=0;i<8;i++)g.parts.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-1.2)*4,life:18,c})}
-function coll(a,b){return a.x<a.x+a.w && a.x+b.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
-function resolve(g,o){const p={x:g.player.x,y:g.player.y,w:R.playerW,h:R.playerH};const hit=!(p.x+p.w<o.x||p.x>o.x+o.w||p.y+p.h<o.y||p.y>o.y+o.h);
- if(o.type==='GREEN'&&!o.r&&g.greenAuto&&Math.random()<g.greenAuto&&Math.abs(o.x-p.x)<20){o.r=1;catchGreen(g,o)}
- if(o.type==='RED'&&!o.r&&g.redAuto&&g.player.on&&Math.random()<g.redAuto&&Math.abs(o.x-p.x)<40){g.player.vy=R.jumpVelocity;g.player.on=false;g.fx='Автопрыжок'}
- if(!o.r&&hit){o.r=1;if(o.type==='GREEN')catchGreen(g,o);if(o.type==='RED'){g.spamCaught++;penalty(g,g.redCatchPenalty);miss(g);part(g,o.x,o.y,'#ff5572')}if(o.type==='VIP'){g.d=Math.max(0,g.d+g.vipCatchDelta);part(g,o.x,o.y,'#ffd166')}}
- if(!o.r&&o.x+o.w<g.player.x){o.r=1;if(o.type==='GREEN'){g.usefulMissed++;penalty(g,g.greenMissPenalty);miss(g)}if(o.type==='RED'){g.spamJumped++;add(g,R.scoreRedJump);if(g.character.ability.key==='RED_JUMP_REDUCES_DISSAT')g.d=Math.max(0,g.d+g.character.ability.params.dissatDeltaPerRedJump)}if(o.type==='VIP'){penalty(g,g.vipMissDelta);miss(g)}}}
-function catchGreen(g,o){add(g,g.greenScore);g.usefulCaught++;g.combo++;g.streak++;part(g,o.x,o.y,'#27e57f');if(g.combo>=5&&performance.now()>g.slowCdUntil){g.slowUntil=performance.now()+R.slowDurationMs;g.slowCdUntil=performance.now()+R.slowCooldownMs;g.fx='SLOW'}if(g.character.ability.key==='GREEN_STREAK_HEAL_WITH_CAP'){const p=g.character.ability.params;if(g.streak%p.everyGreens===0&&g.totalHeal<p.capTotalHealPct){const heal=Math.min(p.healPct,p.capTotalHealPct-g.totalHeal);g.totalHeal+=heal;g.d=Math.max(0,g.d-heal)}}}
-function hud(g){const t=g.running?performance.now()-g.start:g.end-g.start;E('hScore').textContent=g.score;E('hTime').textContent=(t/1000).toFixed(1)+' с';E('hCombo').textContent=g.combo;E('hFx').textContent=performance.now()<g.shieldUntil?'Щит':(performance.now()<g.slowUntil?'SLOW':g.fx);E('hBar').style.width=(Math.min(1,g.d/g.threshold)*100).toFixed(1)+'%';E('hD').textContent=g.d.toFixed(1)+'% / '+g.threshold+'%'}
-async function countdown(){show('game');const c=E('count');for(const t of ['3','2','1','Звонки!']){c.textContent=t;c.classList.remove('hidden');await new Promise(r=>setTimeout(r,650));}c.classList.add('hidden');requestAnimationFrame(loop)}
-function drawImg(src,x,y,w,h,fb){const i=state.img[src];const ctx=E('gameCanvas').getContext('2d');if(i&&i.complete&&i.naturalWidth>0)ctx.drawImage(i,x,y,w,h);else{ctx.fillStyle=fb;ctx.fillRect(x,y,w,h)}}
-function loop(ts){const g=state.game;if(!g||!g.running)return;const ctx=E('gameCanvas').getContext('2d');const dt=Math.min(33,ts-g.last);g.last=ts;const e=ts-g.start;const k=Math.floor(e/10000);const slow=ts<g.slowUntil;const sp=Math.min(R.speedMax,R.speedStart*Math.pow(R.speedScalePer10s,k))*(slow?R.slowSpeedFactor:1);g.nextSpawn=Math.max(R.spawnIntervalMinMs,R.spawnIntervalStartMs*Math.pow(R.spawnScalePer10s,k))*(slow?R.slowSpawnFactor:1);g.spawnT+=dt;if(g.spawnT>=g.nextSpawn){g.spawnT=0;const t=spawnType(g,ts);if(t==='VIP')g.lastVip=ts;g.objs.push({type:t,x:1140,y:R.groundY-40,w:44,h:44,r:0})}
- if(g.jump&&g.player.on){g.player.vy=R.jumpVelocity;g.player.on=false}g.jump=false;g.player.vy+=R.gravity;g.player.y+=g.player.vy;if(g.player.y>=R.groundY-R.playerH){g.player.y=R.groundY-R.playerH;g.player.vy=0;g.player.on=true}
- g.objs.forEach(o=>{o.x-=sp*(dt/16.67);resolve(g,o)});g.objs=g.objs.filter(o=>!o.r&&o.x+o.w>-40);g.parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life--});g.parts=g.parts.filter(p=>p.life>0)
- if(g.d>=g.threshold){g.running=false;finish();return}
- ctx.clearRect(0,0,1100,420);ctx.fillStyle='#101a27';ctx.fillRect(0,0,1100,420);ctx.fillStyle='#182538';ctx.fillRect(0,R.groundY,1100,6);
- drawImg(g.character.avatarUrl,g.player.x,g.player.y,R.playerW,R.playerH,'#4aa6ff');g.objs.forEach(o=>drawImg(o.type==='GREEN'?'assets/phone_green.png':o.type==='RED'?'assets/phone_red.png':'assets/phone_vip.png',o.x,o.y,o.w,o.h,o.type==='GREEN'?'#27e57f':o.type==='RED'?'#ff5572':'#ffd166'));
- g.parts.forEach(p=>{ctx.globalAlpha=p.life/18;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,4,4)});ctx.globalAlpha=1;hud(g);requestAnimationFrame(loop)}
-async function finish(){const g=state.game;g.end=performance.now();hud(g);E('gMsg').textContent=`Игра окончена. ${g.score} очков`;
- await api('/api/runs',{method:'POST',body:JSON.stringify({nick:g.nick,characterId:g.character.id,score:g.score,survivalMs:Math.round(g.end-g.start),usefulCaught:g.usefulCaught,usefulMissed:g.usefulMissed,spamJumped:g.spamJumped,spamCaught:g.spamCaught,clientHash:navigator.userAgent.slice(0,120)})});
- setTimeout(async()=>{show('main');await refresh()},900)}
+function calculate(periodOverride){
+  const p=periodOverride||state.period, start=d(p.startDate), end=d(p.endDate), shares=derivedShares();
+  const icSec=parseN(state.constants.interconnect_rub_per_min)/60;
+  const llmReq=llmCostPerRequest();
+  const scAgg=Object.fromEntries(state.scenarios.map(s=>[s.id,{id:s.id,name_ru:s.name_ru,calls:0,revenue:0,stt:0,llm:0,smsCount:0,sms:0,margin:0,sec_billable:secBillable(s)}]));
+  const monthly={}; let totalProfit=0,totalRevenue=0,totalVar=0,totalPayroll=0,totalUnknown=0;
+  for(const dt of days(start,end)){
+    const k=monthKey(dt); if(!monthly[k]) monthly[k]={month:k,calls:0,revenue:0,stt:0,llm:0,sms:0,delivery:0,radius:0,tts:0,payroll:0,profit:0};
+    const unknown=unknownCallsForDay(dt); totalUnknown+=unknown; monthly[k].calls+=unknown;
+    let rev=0,stt=0,llm=0,sms=0;
+    for(const s of state.scenarios){ if(!s.enabled) continue; const calls=unknown*parseN(s.share_of_unknown); const sb=secBillable(s); const srev=calls*sb*icSec*shares.revEff; const sstt=s.flags.use_stt?calls*parseN(s.timing.sec_incoming)*parseN(state.constants.stt_rub_per_sec):0; const sllm=s.flags.use_llm?calls*parseN(s.llm.llm_calls_per_call)*llmReq:0; const smsCount=smsCountByRule(s,calls); const ssms=smsCount*parseN(state.constants.sms_rub_per_sms); const sm=srev-sstt-sllm-ssms;
+      const a=scAgg[s.id]; a.calls+=calls;a.revenue+=srev;a.stt+=sstt;a.llm+=sllm;a.smsCount+=smsCount;a.sms+=ssms;a.margin+=sm;
+      rev+=srev;stt+=sstt;llm+=sllm;sms+=ssms;
+    }
+    const callsBaseDel=state.constants.apply_delivery_region_on==='UnknownCallsBase'?unknown:unknown;
+    const delivery=callsBaseDel*shares.notHomeEff*parseN(state.constants.delivery_region_rub_per_call);
+    const rate=parseN(state.constants.share_mts)*parseN(state.constants.radius_mts_rub_per_min)+(1-parseN(state.constants.share_mts))*parseN(state.constants.radius_t2_rub_per_min);
+    const callsBaseRadius=state.constants.apply_radius_on==='UnknownCallsBase'?unknown:unknown;
+    const radius=callsBaseRadius*avgRadio()*rate;
+    const ttsDay=(parseN(state.constants.tts_rub_per_char)*parseN(state.constants.tts_unique_phrases_per_year)*parseN(state.constants.tts_avg_chars_per_phrase))/365;
+    const mi=dt.getMonth(), payrollDay=parseN(state.payroll[mi])/daysInMonth(dt.getFullYear(),mi);
+    const varCost=stt+llm+sms+delivery+radius+ttsDay, profit=rev-varCost-payrollDay;
+    totalRevenue+=rev; totalVar+=varCost; totalPayroll+=payrollDay; totalProfit+=profit;
+    Object.assign(monthly[k],{revenue:monthly[k].revenue+rev,stt:monthly[k].stt+stt,llm:monthly[k].llm+llm,sms:monthly[k].sms+sms,delivery:monthly[k].delivery+delivery,radius:monthly[k].radius+radius,tts:monthly[k].tts+ttsDay,payroll:monthly[k].payroll+payrollDay,profit:monthly[k].profit+profit});
+  }
+  const scenarios=Object.values(scAgg).map(a=>({...a,cost:a.stt+a.llm+a.sms,revenue_per_call:a.calls?a.revenue/a.calls:0,cost_per_call:a.calls?(a.stt+a.llm+a.sms)/a.calls:0,margin_per_call:a.calls?a.margin/a.calls:0}));
+  return {shares,icSec,llmReq,totalProfit,totalRevenue,totalVar,totalPayroll,totalUnknown,scenarios,monthly:Object.values(monthly)};
+}
 
-E('loginBtn').onclick=login;E('pass').onkeydown=e=>{if(e.key==='Enter')login()};E('reload').onclick=refresh;E('mode').onchange=loadBoard;E('charFilter').onchange=loadBoard;
-E('playBtn').onclick=()=>{E('nick').value=localStorage.getItem(LS_NICK)||'';renderChars();E('modal').classList.remove('hidden')};E('close').onclick=()=>E('modal').classList.add('hidden');E('modal').onclick=e=>{if(e.target===E('modal'))E('modal').classList.add('hidden')};
-E('start').onclick=()=>{const nick=(E('nick').value||'Игрок').trim().slice(0,24)||'Игрок';localStorage.setItem(LS_NICK,nick);E('modal').classList.add('hidden');startGame(nick,ch(state.selected))};
-window.onkeydown=e=>{if(state.game?.running&&(e.code==='Space'||e.code==='ArrowUp')){e.preventDefault();state.game.jump=true}};E('toMain').onclick=async()=>{if(state.game)state.game.running=false;show('main');await refresh()};E('logoutBtn').onclick=()=>{state.token='';localStorage.removeItem(LS_TOKEN);show('access')};
-preload();bootstrap();
+function sensitivityForScenario(s,res){
+  const period=state.period; const yearRes=calculate({timezone:TZ,mode:'year_2026',startDate:'2026-01-01',endDate:'2026-12-31'});
+  const callsP=res.scenarios.find(x=>x.id===s.id)?.calls||0; const callsY=yearRes.scenarios.find(x=>x.id===s.id)?.calls||0;
+  const total=parseN(s.timing.sec_wait)+parseN(s.timing.sec_outgoing)+parseN(s.timing.sec_incoming);
+  const deltaBill=s.billing.bill_first_3_sec?1:(total>3?1:0);
+  const perCallRev=deltaBill*res.icSec*res.shares.revEff;
+  const incomingSTT=s.flags.use_stt?parseN(state.constants.stt_rub_per_sec):0;
+  return {
+    wait:{period:callsP*perCallRev,year:callsY*perCallRev},
+    outgoing:{period:callsP*perCallRev,year:callsY*perCallRev},
+    incoming:{period:callsP*(perCallRev-incomingSTT),year:callsY*(perCallRev-incomingSTT)}
+  };
+}
+
+const tabs=[['period','Period and rollout'],['segments','Segments'],['scenarios','Scenarios'],['constants','Constants'],['results','Results']];
+function renderTabs(){document.getElementById('tabs').innerHTML=tabs.map(([k,n])=>`<button class="${state.tab===k?'active':''}" onclick="state.tab='${k}';render()">${n}</button>`).join('');}
+function infoBtn(key){return `<button class='info' onclick="openModal('Обьяснение',${JSON.stringify(infoText[key]||'')})">i</button>`}
+function setPath(path,val){const a=path.split('.');let o=state; while(a.length>1) o=o[a.shift()]; o[a[0]]=val; render();}
+
+function renderPeriod(){
+  const rows=(state.rollout.mode==='calls'?state.rollout.callTimepoints:state.rollout.userTimepoints);
+  const key=state.rollout.mode==='calls'?'unknownCallsPerDay':'users';
+  return `<div class='panel'><h3>Период</h3><div class='grid'><label>Mode<select onchange="setPath('period.mode',this.value)"><option value='year_2026' ${state.period.mode==='year_2026'?'selected':''}>year_2026</option><option value='custom' ${state.period.mode==='custom'?'selected':''}>custom</option></select></label><label>Start<input type='date' value='${state.period.startDate}' onchange="setPath('period.startDate',this.value)"></label><label>End<input type='date' value='${state.period.endDate}' onchange="setPath('period.endDate',this.value)"></label></div></div>
+  <div class='panel'><h3>Rollout</h3><div class='row'><label><input type='radio' name='rm' ${state.rollout.mode==='calls'?'checked':''} onchange="state.rollout.mode='calls';render()"> Calls-driven</label><label><input type='radio' name='rm' ${state.rollout.mode==='users'?'checked':''} onchange="state.rollout.mode='users';render()"> Users-driven</label>${state.rollout.mode==='users'?`<label>unknownCallsPerUserPerDay<input type='number' step='0.0001' value='${state.rollout.unknownCallsPerUserPerDay}' onchange="setPath('rollout.unknownCallsPerUserPerDay',parseFloat(this.value)||0)"></label>`:''}</div>
+  <table><tr><th>date</th><th>${key}</th><th></th></tr>${rows.map((r,i)=>`<tr><td><input type='date' value='${r.date}' onchange="state.rollout.${state.rollout.mode==='calls'?'callTimepoints':'userTimepoints'}[${i}].date=this.value;render()"></td><td><input type='number' value='${r[key]}' onchange="state.rollout.${state.rollout.mode==='calls'?'callTimepoints':'userTimepoints'}[${i}].${key}=parseFloat(this.value)||0;render()"></td><td><button onclick="state.rollout.${state.rollout.mode==='calls'?'callTimepoints':'userTimepoints'}.splice(${i},1);render()">x</button></td></tr>`).join('')}</table>
+  <button onclick="state.rollout.${state.rollout.mode==='calls'?'callTimepoints':'userTimepoints'}.push({date:state.period.startDate,${key}:0});render()">Добавить точку</button></div>`;
+}
+function renderSegments(){const sh=derivedShares(); return `<div class='panel'><h3>Segments ${infoBtn('segments')}</h3><table><tr><th>home_flag</th><th>same_fact</th><th>from_home</th><th>count</th></tr>${state.segments.rows.map((r,i)=>`<tr><td><input type='number' value='${r.home_flag}' onchange='state.segments.rows[${i}].home_flag=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.same_fact}' onchange='state.segments.rows[${i}].same_fact=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.from_home}' onchange='state.segments.rows[${i}].from_home=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.count}' onchange='state.segments.rows[${i}].count=parseFloat(this.value)||0;render()'></td></tr>`).join('')}</table>
+  <p class='small'>share_not_home=${fmt(sh.notHome)}; share_same_fact=${fmt(sh.sameFact)}; share_revenue_eligible=${fmt(sh.revElig)}</p>
+  <div class='row'><label><input type='checkbox' ${state.segments.override_share_not_home_enabled?'checked':''} onchange='state.segments.override_share_not_home_enabled=this.checked;render()'> override not_home</label><input type='number' step='0.0001' value='${state.segments.override_share_not_home_value}' onchange='state.segments.override_share_not_home_value=parseFloat(this.value)||0;render()'><label><input type='checkbox' ${state.segments.override_share_revenue_eligible_enabled?'checked':''} onchange='state.segments.override_share_revenue_eligible_enabled=this.checked;render()'> override revenue_eligible</label><input type='number' step='0.0001' value='${state.segments.override_share_revenue_eligible_value}' onchange='state.segments.override_share_revenue_eligible_value=parseFloat(this.value)||0;render()'></div></div>`; }
+
+function renderScenarios(){
+  const sum=state.scenarios.reduce((a,s)=>a+(s.enabled?parseN(s.share_of_unknown):0),0);
+  return `<div class='panel'><div class='row'><h3>Scenarios</h3><button onclick='state.scenarios=currentPreset();render()'>Load preset Current</button><button onclick='const x=state.scenarios.reduce((a,s)=>a+(s.enabled?parseN(s.share_of_unknown):0),0)||1;state.scenarios.forEach(s=>{if(s.enabled)s.share_of_unknown/=x});render()'>Normalize to 100%</button></div><p class='small'>sum enabled shares: ${fmt(sum)}</p>
+  <table><tr><th>enabled</th><th>id</th><th>share ${infoBtn('share')}</th><th>wait</th><th>out</th><th>in</th><th>bill first 3 ${infoBtn('bill3')}</th><th>stt</th><th>llm</th><th>llm calls</th><th>sms rule</th></tr>
+  ${state.scenarios.map((s,i)=>`<tr><td><input type='checkbox' ${s.enabled?'checked':''} onchange='state.scenarios[${i}].enabled=this.checked;render()'></td><td>${s.id}</td><td><input type='number' step='0.00001' value='${s.share_of_unknown}' onchange='state.scenarios[${i}].share_of_unknown=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.timing.sec_wait}' onchange='state.scenarios[${i}].timing.sec_wait=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.timing.sec_outgoing}' onchange='state.scenarios[${i}].timing.sec_outgoing=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.timing.sec_incoming}' onchange='state.scenarios[${i}].timing.sec_incoming=parseFloat(this.value)||0;render()'></td><td><input type='checkbox' ${s.billing.bill_first_3_sec?'checked':''} onchange='state.scenarios[${i}].billing.bill_first_3_sec=this.checked;render()'></td><td><input type='checkbox' ${s.flags.use_stt?'checked':''} onchange='state.scenarios[${i}].flags.use_stt=this.checked;render()'></td><td><input type='checkbox' ${s.flags.use_llm?'checked':''} onchange='state.scenarios[${i}].flags.use_llm=this.checked;render()'></td><td><input type='number' step='0.01' value='${s.llm.llm_calls_per_call}' onchange='state.scenarios[${i}].llm.llm_calls_per_call=parseFloat(this.value)||0;render()'></td><td>${s.flags.sms_rule_tag}</td></tr>`).join('')}
+  </table></div>`;
+}
+
+function renderConstants(){
+  const c=state.constants;
+  return `<div class='panel'><h3>Constants</h3><div class='grid'>
+    <label>interconnect_rub_per_min ${infoBtn('interconnect')}<input type='number' step='0.0001' value='${c.interconnect_rub_per_min}' onchange="setPath('constants.interconnect_rub_per_min',parseFloat(this.value)||0)"></label>
+    <label>stt_rub_per_sec ${infoBtn('stt')}<input type='number' step='0.0001' value='${c.stt_rub_per_sec}' onchange="setPath('constants.stt_rub_per_sec',parseFloat(this.value)||0)"></label>
+    <label>llm_rub_per_1m_tokens<input type='number' value='${c.llm_rub_per_1m_tokens}' onchange="setPath('constants.llm_rub_per_1m_tokens',parseFloat(this.value)||0)"></label>
+    <label>tokens_out_per_request<input type='number' value='${c.tokens_out_per_request}' onchange="setPath('constants.tokens_out_per_request',parseFloat(this.value)||0)"></label>
+    <label>tokens_in_per_request<input type='number' value='${c.tokens_in_per_request}' onchange="setPath('constants.tokens_in_per_request',parseFloat(this.value)||0)"></label>
+    <label>token_weight_in<input type='number' value='${c.token_weight_in}' onchange="setPath('constants.token_weight_in',parseFloat(this.value)||0)"></label>
+    <label>tts_rub_per_char<input type='number' step='0.0001' value='${c.tts_rub_per_char}' onchange="setPath('constants.tts_rub_per_char',parseFloat(this.value)||0)"></label>
+    <label>tts_unique_phrases_per_year<input type='number' value='${c.tts_unique_phrases_per_year}' onchange="setPath('constants.tts_unique_phrases_per_year',parseFloat(this.value)||0)"></label>
+    <label>tts_avg_chars_per_phrase<input type='number' value='${c.tts_avg_chars_per_phrase}' onchange="setPath('constants.tts_avg_chars_per_phrase',parseFloat(this.value)||0)"></label>
+    <label>sms_rub_per_sms<input type='number' step='0.0001' value='${c.sms_rub_per_sms}' onchange="setPath('constants.sms_rub_per_sms',parseFloat(this.value)||0)"></label>
+    <label>sms_spam_like_share<input type='number' step='0.0001' value='${c.sms_spam_like_share}' onchange="setPath('constants.sms_spam_like_share',parseFloat(this.value)||0)"></label>
+    <label>delivery_region_rub_per_call<input type='number' step='0.0001' value='${c.delivery_region_rub_per_call}' onchange="setPath('constants.delivery_region_rub_per_call',parseFloat(this.value)||0)"></label>
+    <label>share_mts<input type='number' step='0.0001' value='${c.share_mts}' onchange="setPath('constants.share_mts',parseFloat(this.value)||0)"></label>
+    <label>radius mode<select onchange="setPath('constants.radius_mode',this.value)"><option value='use_distribution' ${c.radius_mode==='use_distribution'?'selected':''}>use_distribution</option><option value='use_manual_avg' ${c.radius_mode==='use_manual_avg'?'selected':''}>use_manual_avg</option></select></label>
+    <label>avg_radio_minutes_per_call_manual<input type='number' step='0.0001' value='${c.avg_radio_minutes_per_call_manual}' onchange="setPath('constants.avg_radio_minutes_per_call_manual',parseFloat(this.value)||0)"></label>
+  </div>
+  <h4>Payroll per month</h4><div class='grid'>${state.payroll.map((v,i)=>`<label>${i+1}<input type='number' value='${v}' onchange='state.payroll[${i}]=parseFloat(this.value)||0;render()'></label>`).join('')}</div></div>`;
+}
+
+function drill(title,content){openModal(title,content);}
+function exportJSON(res){const data={period:state.period,rollout:state.rollout,segments:state.segments,constants:state.constants,payroll:state.payroll,scenarios:state.scenarios,results:res};download('pnl_export.json',JSON.stringify(data,null,2),'application/json');}
+function exportCSV(res){
+  const sHeader='id,name,calls,revenue,stt,llm,sms_count,sms,margin,revenue_per_call,cost_per_call,margin_per_call\n';
+  const sRows=res.scenarios.map(x=>[x.id,x.name_ru,x.calls,x.revenue,x.stt,x.llm,x.smsCount,x.sms,x.margin,x.revenue_per_call,x.cost_per_call,x.margin_per_call].join(','));
+  const mHeader='\n\nmonth,calls,revenue,stt,llm,sms,delivery,radius,tts,payroll,profit\n';
+  const mRows=res.monthly.map(m=>[m.month,m.calls,m.revenue,m.stt,m.llm,m.sms,m.delivery,m.radius,m.tts,m.payroll,m.profit].join(','));
+  download('pnl_export.csv',sHeader+sRows.join('\n')+mHeader+mRows.join('\n'),'text/csv');
+}
+function download(name,text,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;a.click();}
+
+function chart(monthly){
+  if(!monthly.length) return '';
+  const w=860,h=200,p=24,vals=monthly.map(x=>x.profit),max=Math.max(...vals),min=Math.min(...vals); const span=(max-min)||1;
+  const pts=monthly.map((m,i)=>`${p+i*(w-2*p)/(monthly.length-1)},${h-p-(m.profit-min)*(h-2*p)/span}`).join(' ');
+  return `<svg class='chart' viewBox='0 0 ${w} ${h}'><polyline points='${pts}' fill='none' stroke='#2563eb' stroke-width='2'></polyline>${monthly.map((m,i)=>`<circle cx='${p+i*(w-2*p)/(monthly.length-1)}' cy='${h-p-(m.profit-min)*(h-2*p)/span}' r='3' fill='#1d4ed8'></circle>`).join('')}</svg>`;
+}
+
+function renderResults(){
+  const r=calculate();
+  return `<div class='panel'><h3>Total P&L</h3><div class='kpi'><div class='card'><div class='small'>UnknownCallsBase period</div><b>${fmt(r.totalUnknown)}</b></div><div class='card'><div class='small'>Total revenue</div><b class='clickable' onclick="drill('Total revenue','Сумма revenue_s(d) по всем дням и сценариям. Формула: calls*sec_billable*interconnect_per_sec*share_revenue_eligible_eff. Результат: ${money(r.totalRevenue)}')">${money(r.totalRevenue)}</b></div><div class='card'><div class='small'>Total variable cost</div><b>${money(r.totalVar)}</b></div><div class='card'><div class='small'>Total profit</div><b class='clickable' onclick="drill('Profit','profit_day = revenue - variable - payroll. Сумма за период: ${money(r.totalProfit)}')">${money(r.totalProfit)}</b></div></div>
+  <div class='row' style='margin-top:8px'><button onclick='exportJSON(calculate())'>Export JSON</button><button onclick='exportCSV(calculate())'>Export CSV</button></div></div>
+  <div class='panel'><h3>Scenario unit economics</h3><table><tr><th>scenario</th><th>calls</th><th>revenue</th><th>stt</th><th>llm</th><th>sms_count</th><th>sms</th><th>margin</th><th>revenue/call</th><th>cost/call</th><th>margin/call</th><th>Cost of +1 sec</th></tr>
+  ${r.scenarios.map(s=>{const sen=sensitivityForScenario(state.scenarios.find(x=>x.id===s.id),r); return `<tr><td>${s.id}</td><td>${fmt(s.calls)}</td><td class='clickable' onclick="drill('${s.id} revenue','Формула: calls*billable_sec*interconnect_sec*share_revenue_eligible. Подстановка: ${fmt(s.calls)} * ${fmt(s.sec_billable)} * ${fmt(r.icSec)} * ${fmt(r.shares.revEff)} = ${money(s.revenue)}')">${money(s.revenue)}</td><td>${money(s.stt)}</td><td>${money(s.llm)}</td><td>${fmt(s.smsCount)}</td><td>${money(s.sms)}</td><td>${money(s.margin)}</td><td>${money(s.revenue_per_call)}</td><td>${money(s.cost_per_call)}</td><td>${money(s.margin_per_call)}</td><td><span class='clickable' onclick="drill('Sensitivity ${s.id}','wait: period ${money(sen.wait.period)}, year ${money(sen.wait.year)}\noutgoing: period ${money(sen.outgoing.period)}, year ${money(sen.outgoing.year)}\nincoming: period ${money(sen.incoming.period)}, year ${money(sen.incoming.year)}')">details</span></td></tr>`}).join('')}
+  </table></div>
+  <div class='panel'><h3>Monthly totals</h3>${chart(r.monthly)}<table><tr><th>month</th><th>calls</th><th>revenue</th><th>stt</th><th>llm</th><th>sms</th><th>delivery</th><th>radius</th><th>tts</th><th>payroll</th><th>profit</th></tr>${r.monthly.map(m=>`<tr><td>${m.month}</td><td>${fmt(m.calls)}</td><td>${money(m.revenue)}</td><td>${money(m.stt)}</td><td>${money(m.llm)}</td><td>${money(m.sms)}</td><td>${money(m.delivery)}</td><td>${money(m.radius)}</td><td>${money(m.tts)}</td><td>${money(m.payroll)}</td><td>${money(m.profit)}</td></tr>`).join('')}</table></div>`;
+}
+
+function openModal(t,b){document.getElementById('modalTitle').textContent=t;document.getElementById('modalBody').textContent=b;document.getElementById('modalBg').style.display='flex';}
+function closeModal(){document.getElementById('modalBg').style.display='none';}
+function render(){renderTabs();const c=document.getElementById('content');c.innerHTML=state.tab==='period'?renderPeriod():state.tab==='segments'?renderSegments():state.tab==='scenarios'?renderScenarios():state.tab==='constants'?renderConstants():renderResults();}
+render();
 </script>
 </body>
 </html>
