@@ -2,129 +2,408 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Приёмная 23.02. Спаси мир от СПАМа</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Калькулятор экономики входящих звонков</title>
   <style>
-    :root{--bg:#0b0f14;--card:#121a25;--bd:#2a3444;--txt:#d5e2f1;--muted:#90a1b8;--g:#27e57f;--r:#ff5572;--y:#ffd166}
-    *{box-sizing:border-box} body{margin:0;background:radial-gradient(900px 500px at 20% -20%,#1b2433,var(--bg));color:var(--txt);font-family:Inter,system-ui,sans-serif}
-    .hidden{display:none!important}.wrap{max-width:1100px;margin:0 auto;padding:16px}.card{background:linear-gradient(180deg,#141d29,#111924);border:1px solid var(--bd);border-radius:14px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}
-    input,select,button{font:inherit}.field,input,select{background:#0e151f;border:1px solid var(--bd);color:var(--txt);padding:10px;border-radius:10px}
-    button{padding:10px 12px;border-radius:10px;border:1px solid #315273;background:#24384e;color:#eef6ff;cursor:pointer}.primary{background:#1d9257;border-color:#1d9257}
-    h1{font-size:clamp(28px,5vw,42px);margin:8px 0} h2{margin:0 0 8px;font-size:20px} .muted{color:var(--muted)}
-    .topbar{position:sticky;top:0;z-index:5;background:rgba(11,15,20,.85);backdrop-filter:blur(6px);padding:10px 0;margin-bottom:10px}
-    .rank-box{padding:12px;margin-bottom:12px}
-    .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{background:#111a27;border:1px solid var(--bd);border-radius:10px;padding:8px}
-    .board{padding:12px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.table-wrap{overflow:auto;border:1px solid var(--bd);border-radius:10px}
-    table{width:100%;border-collapse:collapse;min-width:980px}th,td{padding:8px;border-bottom:1px solid #202b3b;white-space:nowrap;font-size:13px}th{position:sticky;top:0;background:#182435}
-    .badge{font-size:12px;padding:3px 8px;border-radius:999px;display:inline-block}.b1{background:#4b3c09;color:#ffe08f}.b2{background:#2d3648;color:#d3e7ff}.b3{background:#3d3330;color:#ffd8bd}.b4{background:#1f2b3a;color:#b9cce0}
-    #access,#main,#game{min-height:100vh}.center{display:grid;place-items:center;padding:16px}.access-card{width:min(460px,100%);padding:20px}
-    .modal-bg{position:fixed;inset:0;background:rgba(5,9,14,.74);display:grid;place-items:center;padding:14px;z-index:9}.modal{width:min(980px,100%);max-height:90vh;overflow:auto;padding:14px}
-    .chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:10px}.char{border:1px solid var(--bd);border-radius:12px;padding:8px;background:#0f1722;cursor:pointer}.char.active{border-color:var(--g)}
-    .char img{width:48px;height:48px;border-radius:10px;object-fit:cover;border:1px solid #345}
-    #gameCanvas{width:100%;max-width:1100px;border:1px solid var(--bd);border-radius:12px;background:#0f1825;display:block}
-    .hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.hud>div{border:1px solid var(--bd);background:#101926;border-radius:10px;padding:8px}
-    .bar{height:10px;border:1px solid var(--bd);background:#172334;border-radius:99px;overflow:hidden}.bar>div{height:100%;width:0;background:linear-gradient(90deg,#1fca6e,#ffd166,#ff5572)}
-    .count{position:absolute;inset:0;display:grid;place-items:center;font-size:88px;font-weight:800;text-shadow:0 10px 24px #000}
-    @media(max-width:780px){.stats,.hud{grid-template-columns:1fr}.fixed-play{position:fixed;left:12px;right:12px;bottom:12px;z-index:8}}
+    body { margin:0; font-family:Arial,sans-serif; background:#f3f5f9; color:#1e293b; }
+    header { background:#0f172a; color:#fff; padding:12px 16px; }
+    .wrap { max-width:1400px; margin:0 auto; padding:14px; }
+    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+    .tabs button { border:1px solid #cbd5e1; background:#fff; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    .tabs button.active { background:#2563eb; color:#fff; border-color:#2563eb; }
+    .panel { background:#fff; border:1px solid #dbe3ef; border-radius:10px; padding:12px; margin-bottom:12px; }
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th,td { border:1px solid #e5e7eb; padding:6px; text-align:left; }
+    th { background:#f8fafc; }
+    input,select { width:100%; padding:6px; box-sizing:border-box; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+    .kpi { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
+    .card { background:#f8fafc; border:1px solid #dbe3ef; border-radius:8px; padding:8px; }
+    .small { font-size:12px; color:#475569; }
+    .click { color:#1d4ed8; cursor:pointer; text-decoration:underline; }
+    .info { width:18px; height:18px; border-radius:999px; border:1px solid #94a3b8; background:#eef2ff; cursor:pointer; font-size:11px; }
+    .modalBg { position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:30; }
+    .modal { width:min(860px,95vw); max-height:84vh; overflow:auto; border-radius:10px; background:#fff; padding:14px; }
+    .chart { width:100%; height:220px; border:1px solid #dbe3ef; border-radius:8px; }
   </style>
 </head>
 <body>
-<section id="access" class="center hidden"><div class="card access-card"><h1>Приёмная 23.02. Спаси мир от СПАМа</h1><p class="muted">Введите код доступа</p><div class="row"><input id="pass" type="password" class="grow"/><button id="loginBtn" class="primary">Войти</button></div><p id="loginMsg" class="muted"></p></div></section>
-
-<section id="main" class="hidden"><div class="wrap">
-  <div class="topbar"><div class="row"><div class="grow"><h1 style="margin:0">Приёмная 23.02</h1></div><button id="playBtn" class="primary fixed-play">Играть</button><button id="logoutBtn">Выйти</button></div></div>
-  <div class="card rank-box"><h2>Рейтинг персонажей</h2><div id="charStats" class="stats"></div></div>
-  <div class="card board">
-    <div class="toolbar">
-      <select id="mode"><option value="best">Лучшие по никам</option><option value="all">Все забеги</option></select>
-      <select id="charFilter"></select>
-      <button id="reload">Обновить</button>
-    </div>
-    <div class="table-wrap"><table><thead><tr><th>Место</th><th>Ранг</th><th>Ник</th><th>Персонаж</th><th>Баллы</th><th>Время (с)</th><th>P useful</th><th>R useful</th><th>P spam</th><th>R spam</th><th>Acc</th><th>Дата</th></tr></thead><tbody id="rows"></tbody></table></div>
+<header><b>Интерактивный калькулятор P&L - обработка входящих звонков</b></header>
+<div class="wrap">
+  <div id="tabs" class="tabs"></div>
+  <div id="content"></div>
+</div>
+<div class="modalBg" id="modalBg">
+  <div class="modal">
+    <div class="row" style="justify-content:space-between"><h3 id="modalTitle"></h3><button onclick="closeModal()">Закрыть</button></div>
+    <pre id="modalBody" style="white-space:pre-wrap"></pre>
   </div>
-</div></section>
-
-<section id="game" class="hidden"><div class="wrap">
-  <div class="hud"><div><div class="muted">Баллы</div><b id="hScore">0</b></div><div><div class="muted">Таймер</div><b id="hTime">0.0</b></div><div><div class="muted">Комбо</div><b id="hCombo">0</b></div><div><div class="muted">Эффект</div><b id="hFx">—</b></div></div>
-  <div style="margin-bottom:8px"><div class="muted">Недовольство</div><div class="bar"><div id="hBar"></div></div><div id="hD">0%</div></div>
-  <div style="position:relative"><canvas id="gameCanvas" width="1100" height="420"></canvas><div id="count" class="count hidden"></div></div>
-  <div class="row" style="margin-top:8px"><div class="muted grow">Управление: Space / ↑</div><button id="toMain">В главное меню</button></div><p id="gMsg" class="muted"></p>
-</div></section>
-
-<div id="modal" class="modal-bg hidden"><div class="card modal"><div class="row"><input id="nick" placeholder="Ник" class="grow" maxlength="24"/><button id="start" class="primary">Старт</button><button id="close">Отмена</button></div><div id="chars" class="chars"></div></div></div>
-
+</div>
 <script>
-const API='';const LS_TOKEN='p2302_token';const LS_NICK='p2302_nick';
-const R={spawnIntervalStartMs:1050,spawnIntervalMinMs:550,spawnScalePer10s:.94,speedStart:9,speedScalePer10s:1.09,speedMax:18,vipCooldownMs:16000,vipMinDissat:30,probs:{GREEN:.605,RED:.38,VIP:.015},jumpVelocity:-15.5,gravity:.9,playerW:64,playerH:70,groundY:336,dissatisfactionMax:100,scoreGreen:1,scoreRedJump:1,greenMissPenalty:10,redCatchPenalty:5,vipCatchDelta:-20,vipMissDelta:20,slowDurationMs:2500,slowSpeedFactor:.8,slowSpawnFactor:1.10,slowCooldownMs:22000};
-const C=[
-{id:'ilikaev',name:'Иликаев Алексей',role:'Разработчик процедур',slogan:'По регламенту — значит правильно.',avatarUrl:'assets/characters/ilikaev.png',ability:{key:'RED_JUMP_REDUCES_DISSAT',params:{dissatDeltaPerRedJump:-1,clampMin:0}}},
-{id:'titov',name:'Титов Роман',role:'Системный аналитик',slogan:'Я вижу паттерны.',avatarUrl:'assets/characters/titov.png',ability:{key:'RED_AUTO_JUMP_CHANCE',params:{chance:.10}}},
-{id:'rusakov',name:'Русаков Олег',role:'UX-редактор',slogan:'Без боли и лишнего шума.',avatarUrl:'assets/characters/rusakov.png',ability:{key:'GREEN_MISS_PENALTY_OVERRIDE',params:{greenMissPenaltyPct:8}}},
-{id:'andreev',name:'Андреев Александр',role:'Лид продуктовой аналитики',slogan:'Главное — метрики.',avatarUrl:'assets/characters/andreev.png',ability:{key:'GREEN_SCORE_OVERRIDE',params:{greenScore:2}}},
-{id:'galkin',name:'Галкин Евгений',role:'Лид разработки',slogan:'Стабильно в проде.',avatarUrl:'assets/characters/galkin.png',ability:{key:'RED_CATCH_PENALTY_OVERRIDE',params:{redCatchPenaltyPct:4}}},
-{id:'pakulin',name:'Пакулин Александр',role:'Системный аналитик',slogan:'Сначала схема, потом звонки.',avatarUrl:'assets/characters/pakulin.png',ability:{key:'VIP_RULESET_OVERRIDE',params:{vipCooldownMs:12000,vipCatchDeltaPct:-15,vipMissDeltaPct:15}}},
-{id:'sayafarov',name:'Саяфаров Денис',role:'QA Auto',slogan:'Один баг — бесплатно.',avatarUrl:'assets/characters/sayafarov.png',ability:{key:'ONE_MISTAKE_NO_PENALTY',params:{uses:1}}},
-{id:'zaichkin',name:'Заичкин Данил',role:'Developer',slogan:'Хотфикс на лету.',avatarUrl:'assets/characters/zaichkin.png',ability:{key:'POST_MISTAKE_SHIELD_NO_SCORE',params:{shieldMs:2000}}},
-{id:'krivenko',name:'Кривенко Евгений',role:'Developer',slogan:'Серию не ломаем.',avatarUrl:'assets/characters/krivenko.png',ability:{key:'ONE_TIME_COMBO_SAVE',params:{uses:1}}},
-{id:'evdokimov',name:'Евдокимов Даниил',role:'Developer',slogan:'Оптимизация решает.',avatarUrl:'assets/characters/evdokimov.png',ability:{key:'SCORE_MULTIPLIER',params:{multiplier:1.10}}},
-{id:'pluzhnik',name:'Плужник Егор',role:'Developer',slogan:'Чистая линия.',avatarUrl:'assets/characters/pluzhnik.png',ability:{key:'GREEN_STREAK_HEAL_WITH_CAP',params:{everyGreens:3,healPct:3,capTotalHealPct:12,clampMin:0}}},
-{id:'esyunin',name:'Есюнин Никита',role:'Developer',slogan:'Чую полезный звонок.',avatarUrl:'assets/characters/esyunin.png',ability:{key:'GREEN_AUTO_CATCH_CHANCE',params:{chance:.10}}},
-{id:'mordvinov',name:'Мордвинов Сергей',role:'Developer',slogan:'Система выдержит.',avatarUrl:'assets/characters/mordvinov.png',ability:{key:'DISSAT_THRESHOLD_OVERRIDE',params:{thresholdPct:105}}}
+const TZ='Europe/Tallinn';
+const fmt=v=>Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:4});
+const money=v=>Number(v||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
+const n=v=>Number(v)||0;
+const ds=s=>new Date(s+'T00:00:00');
+const dstr=d=>d.toISOString().slice(0,10);
+function* eachDay(start,end){ for(let x=new Date(start); x<=end; x.setDate(x.getDate()+1)) yield new Date(x); }
+const monthKey=d=>d.toISOString().slice(0,7);
+const dim=(y,m)=>new Date(y,m+1,0).getDate();
+
+const help={
+  база:'Обслуживаемая база - число клиентов, для которых сервис активен в дату. Значение действует до следующей точки.',
+  распределение:'Среднее незнакомых звонков в день на пользователя считается по корзинам: сумма(доля * звонков за период / дни периода).',
+  сегменты:'Доля выручки, которая реально может быть получена, уменьшается на долю same_fact. Формула: 1 - share_same_fact.',
+  доля:'Все доли сценариев задаются в процентах от звонков с незнакомых номеров.',
+  tts:'Расход TTS не фиксированный. Он считается по формуле цена за символ * число уникальных фраз в год * средняя длина фразы.'
+};
+
+const scenarioDefs=[
+  ['s1_answer','Решатель 1: перевод на человека, абонент ответил'],
+  ['s1_missed_sec','Решатель 1: перевод на человека, абонент не ответил, ушло на секретаря'],
+  ['s1_spam','Решатель 1: определили спам, разговор без перевода'],
+  ['s1_unknown','Решатель 1: не смогли определить, ушло дальше'],
+  ['s2_answer','Решатель 2: перевод на человека, абонент ответил'],
+  ['s2_missed_sec','Решатель 2: перевод на человека, абонент не ответил, ушло на секретаря'],
+  ['s2_spam','Решатель 2: определили спам'],
+  ['s2_unknown','Решатель 2: не смогли определить, ушло дальше'],
+  ['s3_answer','Решатель 3: перевод на человека, абонент ответил'],
+  ['s3_missed_sec','Решатель 3: перевод на человека, абонент не ответил, ушло на секретаря'],
+  ['s3_spam','Решатель 3: определили спам'],
+  ['s3_unknown','Решатель 3: не смогли определить, ушло дальше'],
+  ['g_answer','Генеративка: перевод на человека, абонент ответил'],
+  ['g_missed_sec','Генеративка: перевод, абонент не ответил, ушло на секретаря'],
+  ['g_missed_no_sec','Генеративка: перевод, абонент не ответил, до секретаря не дошло'],
+  ['g_spam','Генеративка: определили как спам/неполезный'],
+  ['g_hangup','Генеративка: не успели определить, повесили трубку'],
+  ['robot_hello','Робот сказал алло, первой фразы не было (слепая зона)']
 ];
-const E=id=>document.getElementById(id); const S=(a,b)=>Math.max(a,Math.min(b,Infinity));
-const state={token:localStorage.getItem(LS_TOKEN)||'',selected:C[0].id,game:null,img:{}};
-const ui={access:E('access'),main:E('main'),game:E('game'),rows:E('rows'),charStats:E('charStats')};
 
-async function api(path,opt={}){const h={'Content-Type':'application/json',...(opt.headers||{})};if(state.token)h.Authorization='Bearer '+state.token;const r=await fetch(API+path,{...opt,headers:h});if(r.status===401){state.token='';localStorage.removeItem(LS_TOKEN);show('access');throw new Error('401');}if(!r.ok) throw new Error(await r.text());return r.json();}
-function show(k){ui.access.classList.add('hidden');ui.main.classList.add('hidden');ui.game.classList.add('hidden');ui[k].classList.remove('hidden');}
-function ch(id){return C.find(x=>x.id===id)||C[0]} function pct(x){return (x*100).toFixed(1)+'%'} function sec(ms){return (ms/1000).toFixed(1)}
-function m(r){const t=r.useful_caught+r.useful_missed+r.spam_jumped+r.spam_caught;return{pu:r.useful_caught/Math.max(1,r.useful_caught+r.spam_caught),ru:r.useful_caught/Math.max(1,r.useful_caught+r.useful_missed),ps:r.spam_jumped/Math.max(1,r.spam_jumped+r.useful_missed),rs:r.spam_jumped/Math.max(1,r.spam_jumped+r.spam_caught),a:(r.useful_caught+r.spam_jumped)/Math.max(1,t)}}
-function rank(i){if(i===0)return['👑','Главный босс Приёмной','b1'];if(i===1)return['🥇','Хранитель звонков','b2'];if(i===2)return['🥈','Защитник от спама','b3'];return['🥉','Стажёр Приёмной','b4'];}
+function emptyScenario(id,name){
+  return {id,name,enabled:false,sharePercent:0,wait:0,out:0,input:0,billFirst3:false,useSTT:false,useLLM:false,llmReq:1.91,useSMS:false,smsRule:'нет'};
+}
+function normalizeShares(arr){
+  const sum=arr.reduce((a,s)=>a+(s.enabled?n(s.sharePercent):0),0);
+  if(sum<=0) return arr;
+  arr.forEach(s=>{ if(s.enabled) s.sharePercent=n(s.sharePercent)*100/sum; });
+  return arr;
+}
+function currentPreset(){
+  const map=Object.fromEntries(scenarioDefs.map(([id,name])=>[id,emptyScenario(id,name)]));
+  const set=(id,val)=>Object.assign(map[id],val,{enabled:true});
+  set('s1_answer',{sharePercent:44.444,wait:0,out:3,input:0,billFirst3:true});
+  set('s1_missed_sec',{sharePercent:9.756,wait:0,out:6,input:6,useSTT:true});
+  set('s1_spam',{sharePercent:6.3,wait:2,out:8,input:14,useSTT:true,useSMS:true,smsRule:'только лайк-спам (доля X)'});
+  set('s3_answer',{sharePercent:1.6,wait:0,out:2,input:4,useSTT:true});
+  set('robot_hello',{sharePercent:18.3,wait:0,out:2,input:0,useSMS:true,smsRule:'нет первой фразы'});
+  set('g_answer',{sharePercent:3.034,wait:4,out:6,input:4,billFirst3:true,useSTT:true,useLLM:true,llmReq:1.91});
+  set('g_missed_sec',{sharePercent:0.333,wait:20,out:2,input:4,useSTT:true,useLLM:true,llmReq:1.91});
+  set('g_missed_no_sec',{sharePercent:0.333,wait:10,out:2,input:4,useSTT:true,useLLM:true,llmReq:1.91});
+  set('g_spam',{sharePercent:7.95,wait:2,out:8,input:14,useSTT:true,useLLM:true,llmReq:1.91,useSMS:true,smsRule:'только лайк-спам (доля X)'});
+  set('g_hangup',{sharePercent:7.95,wait:0,out:3,input:7,useSTT:true,useLLM:true,llmReq:1.91,useSMS:true,smsRule:'не успели определить / повесили трубку'});
+  return normalizeShares(Object.values(map));
+}
 
-async function loadBoard(){const mode=E('mode').value,character=E('charFilter').value||'all';const data=await api(`/api/runs?mode=${mode}&character=${encodeURIComponent(character)}&limit=200`);ui.rows.innerHTML=(data.rows||[]).map((r,i)=>{const z=m(r),rk=rank(i);return `<tr><td>${i+1}</td><td><span class='badge ${rk[2]}'>${rk[0]} ${rk[1]}</span></td><td>${r.nick_display}</td><td>${ch(r.character_id).name}</td><td>${r.score}</td><td>${sec(r.survival_ms)}</td><td>${pct(z.pu)}</td><td>${pct(z.ru)}</td><td>${pct(z.ps)}</td><td>${pct(z.rs)}</td><td>${pct(z.a)}</td><td>${new Date(r.created_at).toLocaleString('ru-RU')}</td></tr>`}).join('')||'<tr><td colspan="12">Нет данных</td></tr>'}
-async function loadSummary(){const data=await api('/api/characters/summary');const map=new Map(C.map(c=>[c.id,{id:c.id,name:c.name,plays:0,bestS:0,bestT:0,uc:0,um:0,sj:0,sc:0,a:0}]));(data.rows||[]).forEach(r=>{const x=map.get(r.character_id);if(!x)return;x.plays=r.plays;x.bestS=r.best_score;x.bestT=r.best_survival;x.uc=r.total_useful_caught;x.um=r.total_useful_missed;x.sj=r.total_spam_jumped;x.sc=r.total_spam_caught;const t=x.uc+x.um+x.sj+x.sc;x.a=(x.uc+x.sj)/Math.max(1,t)});const arr=[...map.values()];const p=[...arr].sort((a,b)=>b.plays-a.plays)[0],s=[...arr].sort((a,b)=>b.bestT-a.bestT)[0],a=[...arr].sort((x,y)=>y.a-x.a)[0],n=[...arr].sort((x,y)=>x.a-y.a)[0];ui.charStats.innerHTML=[['Самый популярный',`${p.name} (${p.plays})`],['Самый выживаемый',`${s.name} (${sec(s.bestT)}с)`],['Самый точный',`${a.name} (${pct(a.a)})`],['Самый неточный',`${n.name} (${pct(n.a)})`]].map(x=>`<div class='stat'><div class='muted'>${x[0]}</div><b>${x[1]}</b></div>`).join('')}
-async function refresh(){await Promise.all([loadBoard(),loadSummary()])}
+const state={
+  tab:'period',
+  period:{start:'2026-03-01',end:'2026-12-31',timezone:TZ},
+  rollout:{userTimepoints:[
+    {date:'2026-02-24',users:200},{date:'2026-03-01',users:400},{date:'2026-03-15',users:15000},{date:'2026-04-15',users:30000},
+    {date:'2026-05-15',users:3800000},{date:'2026-06-01',users:3850000},{date:'2026-07-01',users:3900000},{date:'2026-08-01',users:3950000},
+    {date:'2026-09-01',users:4000000},{date:'2026-10-01',users:4050000},{date:'2026-11-01',users:4100000},{date:'2026-12-01',users:4150000}
+  ]},
+  distributionBuckets:[
+    {bucket:'0',percent:35,calls:0,days:30},
+    {bucket:'1',percent:28,calls:1,days:30},
+    {bucket:'2',percent:16,calls:2,days:30},
+    {bucket:'3-5',percent:12,calls:4,days:30},
+    {bucket:'6-10',percent:6,calls:8,days:30},
+    {bucket:'11-20',percent:2,calls:15,days:30},
+    {bucket:'21+',percent:1,calls:25,days:30}
+  ],
+  segments:{rows:[
+    {home_flag:1,same_fact:0,from_home:0,count:1541433779},
+    {home_flag:1,same_fact:1,from_home:1,count:3295135084},
+    {home_flag:0,same_fact:0,from_home:0,count:328555732},
+    {home_flag:0,same_fact:0,from_home:1,count:155373983},
+    {home_flag:0,same_fact:1,from_home:0,count:335498215}
+  ],overrideNotHome:false,overrideNotHomeValue:0.1449,overrideRevenueEligible:false,overrideRevenueEligibleValue:0.3579},
+  scenarios:currentPreset(),
+  constants:{
+    interconnectMin:0.93,sttSec:0.0011,llmPer1M:45,llmOut:1337,llmIn:50,llmInWeight:4,
+    ttsChar:0.0086,ttsPhrasesYear:240000,ttsChars:40,smsPrice:0.035,smsLikeSpamShare:0.30,
+    deliveryPrice:1.02,radiusMts:0.12,radiusT2:0.035,shareMts:0,
+    radioMode:'ввести вручную',avgRadioManual:1.0,radioDist:[{minutes:0.5,cnt:1},{minutes:1,cnt:2},{minutes:2,cnt:1}]
+  },
+  payroll:Array.from({length:12},()=>9930000)
+};
 
-async function login(){try{const d=await api('/api/login',{method:'POST',body:JSON.stringify({password:E('pass').value})});state.token=d.token;localStorage.setItem(LS_TOKEN,d.token);show('main');await refresh();}catch{E('loginMsg').textContent='Неверный код доступа';}}
-async function bootstrap(){E('charFilter').innerHTML='<option value="all">Все персонажи</option>'+C.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');if(state.token){try{await api('/api/me');show('main');await refresh();return;}catch{}}show('access')}
+function usersServed(date){
+  const arr=[...state.rollout.userTimepoints].sort((a,b)=>a.date.localeCompare(b.date));
+  let value=0;
+  for(const p of arr){ if(p.date<=dstr(date)) value=n(p.users); else break; }
+  return value;
+}
+function avgUnknownCallsPerUserPerDay(){
+  return state.distributionBuckets.reduce((sum,b)=>sum+(n(b.percent)/100)*n(b.calls)/Math.max(1,n(b.days)),0);
+}
+function unknownCallsDay(date){ return usersServed(date)*avgUnknownCallsPerUserPerDay(); }
+function segmentShares(){
+  const total=state.segments.rows.reduce((a,r)=>a+n(r.count),0)||1;
+  const notHome=state.segments.rows.filter(r=>n(r.home_flag)===0).reduce((a,r)=>a+n(r.count),0)/total;
+  const sameFact=state.segments.rows.filter(r=>n(r.same_fact)===1).reduce((a,r)=>a+n(r.count),0)/total;
+  const revenueEligible=1-sameFact;
+  return {
+    notHome, sameFact, revenueEligible,
+    notHomeEff:state.segments.overrideNotHome?n(state.segments.overrideNotHomeValue):notHome,
+    revenueEligibleEff:state.segments.overrideRevenueEligible?n(state.segments.overrideRevenueEligibleValue):revenueEligible
+  };
+}
+function llmCostPerRequest(){
+  const c=state.constants;
+  return (n(c.llmOut)+n(c.llmIn)*n(c.llmInWeight))*n(c.llmPer1M)/1_000_000;
+}
+function avgRadioMinutes(){
+  const c=state.constants;
+  if(c.radioMode==='ввести вручную') return n(c.avgRadioManual);
+  const sum=c.radioDist.reduce((a,r)=>a+n(r.minutes)*n(r.cnt),0);
+  const cnt=c.radioDist.reduce((a,r)=>a+n(r.cnt),0)||1;
+  return sum/cnt;
+}
+function smsCountByRule(s,calls){
+  if(!s.useSMS) return 0;
+  if(s.smsRule==='всегда' || s.smsRule==='нет первой фразы' || s.smsRule==='не успели определить / повесили трубку') return calls;
+  if(s.smsRule==='только лайк-спам (доля X)') return calls*n(state.constants.smsLikeSpamShare);
+  return 0;
+}
+function billableSec(s){
+  const total=n(s.wait)+n(s.out)+n(s.input);
+  return s.billFirst3?total:Math.max(0,total-3);
+}
 
-function renderChars(){E('chars').innerHTML=C.map(c=>`<div class='char ${c.id===state.selected?'active':''}' data-id='${c.id}'><div class='row'><img src='${c.avatarUrl}'/><div><b>${c.name}</b><div class='muted'>${c.role}</div></div></div><div class='muted'>${c.slogan}</div></div>`).join('');[...E('chars').children].forEach(x=>x.onclick=()=>{state.selected=x.dataset.id;renderChars()})}
+function calculate(period={start:state.period.start,end:state.period.end}){
+  const start=ds(period.start), end=ds(period.end);
+  const shares=segmentShares();
+  const rubSec=n(state.constants.interconnectMin)/60;
+  const llmReqCost=llmCostPerRequest();
+  const scenarioAgg=Object.fromEntries(state.scenarios.map(s=>[s.id,{id:s.id,name:s.name,calls:0,revenue:0,stt:0,llm:0,smsCount:0,sms:0,margin:0,billable:billableSec(s)}]));
+  const monthly={};
+  let totalUnknown=0,totalCallsServed=0,totalRevenue=0,totalSTT=0,totalLLM=0,totalSMS=0,totalDelivery=0,totalRadius=0,totalTTS=0,totalPayroll=0,totalProfit=0;
 
-function preload(){['assets/phone_green.png','assets/phone_red.png','assets/phone_vip.png',...C.map(c=>c.avatarUrl)].forEach(src=>{const i=new Image();i.src=src;state.img[src]=i;});}
-function applyAbility(g){const p=g.character.ability.params;switch(g.character.ability.key){case'GREEN_MISS_PENALTY_OVERRIDE':g.greenMissPenalty=p.greenMissPenaltyPct;break;case'GREEN_SCORE_OVERRIDE':g.greenScore=p.greenScore;break;case'RED_CATCH_PENALTY_OVERRIDE':g.redCatchPenalty=p.redCatchPenaltyPct;break;case'VIP_RULESET_OVERRIDE':g.vipCooldownMs=p.vipCooldownMs;g.vipCatchDelta=p.vipCatchDeltaPct;g.vipMissDelta=p.vipMissDeltaPct;break;case'ONE_MISTAKE_NO_PENALTY':g.noPenalty=p.uses;break;case'ONE_TIME_COMBO_SAVE':g.comboSave=p.uses;break;case'SCORE_MULTIPLIER':g.mul=p.multiplier;break;case'GREEN_AUTO_CATCH_CHANCE':g.greenAuto=p.chance;break;case'RED_AUTO_JUMP_CHANCE':g.redAuto=p.chance;break;case'DISSAT_THRESHOLD_OVERRIDE':g.threshold=p.thresholdPct;break;}}
-function startGame(nick,character){state.game={nick,character,running:true,start:performance.now(),last:performance.now(),player:{x:100,y:R.groundY-R.playerH,vy:0,on:true},objs:[],parts:[],spawnT:0,nextSpawn:R.spawnIntervalStartMs,lastVip:-1e12,score:0,d:0,threshold:R.dissatisfactionMax,usefulCaught:0,usefulMissed:0,spamJumped:0,spamCaught:0,combo:0,streak:0,slowUntil:0,slowCdUntil:0,shieldUntil:0,noPenalty:0,comboSave:0,totalHeal:0,fx:'—',jump:false,mul:1,greenScore:R.scoreGreen,greenMissPenalty:R.greenMissPenalty,redCatchPenalty:R.redCatchPenalty,vipCooldownMs:R.vipCooldownMs,vipCatchDelta:R.vipCatchDelta,vipMissDelta:R.vipMissDelta,greenAuto:0,redAuto:0};applyAbility(state.game);countdown()}
-function penalty(g,val){if(performance.now()<g.shieldUntil)return;if(g.noPenalty>0){g.noPenalty--;g.fx='Откат';return;}g.d+=val}
-function add(g,v){if(performance.now()<g.shieldUntil)return;g.score+=Math.round(v*g.mul)}
-function miss(g){if(g.comboSave>0){g.comboSave--;g.fx='Серия сохранена';return;}g.combo=0;g.streak=0;if(g.character.ability.key==='POST_MISTAKE_SHIELD_NO_SCORE')g.shieldUntil=performance.now()+g.character.ability.params.shieldMs}
-function spawnType(g,t){const vip=g.d>=R.vipMinDissat&&t-g.lastVip>=g.vipCooldownMs;let x=Math.random();if(vip&&x<R.probs.VIP)return'VIP';x=vip?(x-R.probs.VIP)/(1-R.probs.VIP):x;return x<R.probs.GREEN?'GREEN':'RED'}
-function part(g,x,y,c){for(let i=0;i<8;i++)g.parts.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-1.2)*4,life:18,c})}
-function coll(a,b){return a.x<a.x+a.w && a.x+b.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
-function resolve(g,o){const p={x:g.player.x,y:g.player.y,w:R.playerW,h:R.playerH};const hit=!(p.x+p.w<o.x||p.x>o.x+o.w||p.y+p.h<o.y||p.y>o.y+o.h);
- if(o.type==='GREEN'&&!o.r&&g.greenAuto&&Math.random()<g.greenAuto&&Math.abs(o.x-p.x)<20){o.r=1;catchGreen(g,o)}
- if(o.type==='RED'&&!o.r&&g.redAuto&&g.player.on&&Math.random()<g.redAuto&&Math.abs(o.x-p.x)<40){g.player.vy=R.jumpVelocity;g.player.on=false;g.fx='Автопрыжок'}
- if(!o.r&&hit){o.r=1;if(o.type==='GREEN')catchGreen(g,o);if(o.type==='RED'){g.spamCaught++;penalty(g,g.redCatchPenalty);miss(g);part(g,o.x,o.y,'#ff5572')}if(o.type==='VIP'){g.d=Math.max(0,g.d+g.vipCatchDelta);part(g,o.x,o.y,'#ffd166')}}
- if(!o.r&&o.x+o.w<g.player.x){o.r=1;if(o.type==='GREEN'){g.usefulMissed++;penalty(g,g.greenMissPenalty);miss(g)}if(o.type==='RED'){g.spamJumped++;add(g,R.scoreRedJump);if(g.character.ability.key==='RED_JUMP_REDUCES_DISSAT')g.d=Math.max(0,g.d+g.character.ability.params.dissatDeltaPerRedJump)}if(o.type==='VIP'){penalty(g,g.vipMissDelta);miss(g)}}}
-function catchGreen(g,o){add(g,g.greenScore);g.usefulCaught++;g.combo++;g.streak++;part(g,o.x,o.y,'#27e57f');if(g.combo>=5&&performance.now()>g.slowCdUntil){g.slowUntil=performance.now()+R.slowDurationMs;g.slowCdUntil=performance.now()+R.slowCooldownMs;g.fx='SLOW'}if(g.character.ability.key==='GREEN_STREAK_HEAL_WITH_CAP'){const p=g.character.ability.params;if(g.streak%p.everyGreens===0&&g.totalHeal<p.capTotalHealPct){const heal=Math.min(p.healPct,p.capTotalHealPct-g.totalHeal);g.totalHeal+=heal;g.d=Math.max(0,g.d-heal)}}}
-function hud(g){const t=g.running?performance.now()-g.start:g.end-g.start;E('hScore').textContent=g.score;E('hTime').textContent=(t/1000).toFixed(1)+' с';E('hCombo').textContent=g.combo;E('hFx').textContent=performance.now()<g.shieldUntil?'Щит':(performance.now()<g.slowUntil?'SLOW':g.fx);E('hBar').style.width=(Math.min(1,g.d/g.threshold)*100).toFixed(1)+'%';E('hD').textContent=g.d.toFixed(1)+'% / '+g.threshold+'%'}
-async function countdown(){show('game');const c=E('count');for(const t of ['3','2','1','Звонки!']){c.textContent=t;c.classList.remove('hidden');await new Promise(r=>setTimeout(r,650));}c.classList.add('hidden');requestAnimationFrame(loop)}
-function drawImg(src,x,y,w,h,fb){const i=state.img[src];const ctx=E('gameCanvas').getContext('2d');if(i&&i.complete&&i.naturalWidth>0)ctx.drawImage(i,x,y,w,h);else{ctx.fillStyle=fb;ctx.fillRect(x,y,w,h)}}
-function loop(ts){const g=state.game;if(!g||!g.running)return;const ctx=E('gameCanvas').getContext('2d');const dt=Math.min(33,ts-g.last);g.last=ts;const e=ts-g.start;const k=Math.floor(e/10000);const slow=ts<g.slowUntil;const sp=Math.min(R.speedMax,R.speedStart*Math.pow(R.speedScalePer10s,k))*(slow?R.slowSpeedFactor:1);g.nextSpawn=Math.max(R.spawnIntervalMinMs,R.spawnIntervalStartMs*Math.pow(R.spawnScalePer10s,k))*(slow?R.slowSpawnFactor:1);g.spawnT+=dt;if(g.spawnT>=g.nextSpawn){g.spawnT=0;const t=spawnType(g,ts);if(t==='VIP')g.lastVip=ts;g.objs.push({type:t,x:1140,y:R.groundY-40,w:44,h:44,r:0})}
- if(g.jump&&g.player.on){g.player.vy=R.jumpVelocity;g.player.on=false}g.jump=false;g.player.vy+=R.gravity;g.player.y+=g.player.vy;if(g.player.y>=R.groundY-R.playerH){g.player.y=R.groundY-R.playerH;g.player.vy=0;g.player.on=true}
- g.objs.forEach(o=>{o.x-=sp*(dt/16.67);resolve(g,o)});g.objs=g.objs.filter(o=>!o.r&&o.x+o.w>-40);g.parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life--});g.parts=g.parts.filter(p=>p.life>0)
- if(g.d>=g.threshold){g.running=false;finish();return}
- ctx.clearRect(0,0,1100,420);ctx.fillStyle='#101a27';ctx.fillRect(0,0,1100,420);ctx.fillStyle='#182538';ctx.fillRect(0,R.groundY,1100,6);
- drawImg(g.character.avatarUrl,g.player.x,g.player.y,R.playerW,R.playerH,'#4aa6ff');g.objs.forEach(o=>drawImg(o.type==='GREEN'?'assets/phone_green.png':o.type==='RED'?'assets/phone_red.png':'assets/phone_vip.png',o.x,o.y,o.w,o.h,o.type==='GREEN'?'#27e57f':o.type==='RED'?'#ff5572':'#ffd166'));
- g.parts.forEach(p=>{ctx.globalAlpha=p.life/18;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,4,4)});ctx.globalAlpha=1;hud(g);requestAnimationFrame(loop)}
-async function finish(){const g=state.game;g.end=performance.now();hud(g);E('gMsg').textContent=`Игра окончена. ${g.score} очков`;
- await api('/api/runs',{method:'POST',body:JSON.stringify({nick:g.nick,characterId:g.character.id,score:g.score,survivalMs:Math.round(g.end-g.start),usefulCaught:g.usefulCaught,usefulMissed:g.usefulMissed,spamJumped:g.spamJumped,spamCaught:g.spamCaught,clientHash:navigator.userAgent.slice(0,120)})});
- setTimeout(async()=>{show('main');await refresh()},900)}
+  for(const day of eachDay(start,end)){
+    const key=monthKey(day);
+    if(!monthly[key]) monthly[key]={month:key,calls:0,revenue:0,stt:0,llm:0,sms:0,delivery:0,radius:0,tts:0,payroll:0,profit:0};
 
-E('loginBtn').onclick=login;E('pass').onkeydown=e=>{if(e.key==='Enter')login()};E('reload').onclick=refresh;E('mode').onchange=loadBoard;E('charFilter').onchange=loadBoard;
-E('playBtn').onclick=()=>{E('nick').value=localStorage.getItem(LS_NICK)||'';renderChars();E('modal').classList.remove('hidden')};E('close').onclick=()=>E('modal').classList.add('hidden');E('modal').onclick=e=>{if(e.target===E('modal'))E('modal').classList.add('hidden')};
-E('start').onclick=()=>{const nick=(E('nick').value||'Игрок').trim().slice(0,24)||'Игрок';localStorage.setItem(LS_NICK,nick);E('modal').classList.add('hidden');startGame(nick,ch(state.selected))};
-window.onkeydown=e=>{if(state.game?.running&&(e.code==='Space'||e.code==='ArrowUp')){e.preventDefault();state.game.jump=true}};E('toMain').onclick=async()=>{if(state.game)state.game.running=false;show('main');await refresh()};E('logoutBtn').onclick=()=>{state.token='';localStorage.removeItem(LS_TOKEN);show('access')};
-preload();bootstrap();
+    const unknown=unknownCallsDay(day);
+    totalUnknown+=unknown;
+    let callsServedDay=0,revDay=0,sttDay=0,llmDay=0,smsDay=0;
+
+    for(const s of state.scenarios){
+      if(!s.enabled) continue;
+      const share=n(s.sharePercent)/100;
+      const calls=unknown*share;
+      callsServedDay+=calls;
+      const revenue=calls*billableSec(s)*rubSec*shares.revenueEligibleEff;
+      const stt=s.useSTT?calls*n(s.input)*n(state.constants.sttSec):0;
+      const llm=s.useLLM?calls*n(s.llmReq)*llmReqCost:0;
+      const smsCount=smsCountByRule(s,calls);
+      const sms=smsCount*n(state.constants.smsPrice);
+      const margin=revenue-stt-llm-sms;
+
+      const a=scenarioAgg[s.id];
+      a.calls+=calls; a.revenue+=revenue; a.stt+=stt; a.llm+=llm; a.smsCount+=smsCount; a.sms+=sms; a.margin+=margin;
+      revDay+=revenue; sttDay+=stt; llmDay+=llm; smsDay+=sms;
+    }
+
+    const delivery=callsServedDay*shares.notHomeEff*n(state.constants.deliveryPrice);
+    const radiusRate=n(state.constants.shareMts)*n(state.constants.radiusMts)+(1-n(state.constants.shareMts))*n(state.constants.radiusT2);
+    const radius=callsServedDay*avgRadioMinutes()*radiusRate;
+    const ttsDay=n(state.constants.ttsChar)*n(state.constants.ttsPhrasesYear)*n(state.constants.ttsChars)/365;
+    const mi=day.getMonth();
+    const payrollDay=n(state.payroll[mi])/dim(day.getFullYear(),mi);
+
+    const profit=revDay-sttDay-llmDay-smsDay-delivery-radius-ttsDay-payrollDay;
+
+    totalCallsServed+=callsServedDay; totalRevenue+=revDay; totalSTT+=sttDay; totalLLM+=llmDay; totalSMS+=smsDay;
+    totalDelivery+=delivery; totalRadius+=radius; totalTTS+=ttsDay; totalPayroll+=payrollDay; totalProfit+=profit;
+
+    monthly[key].calls+=callsServedDay; monthly[key].revenue+=revDay; monthly[key].stt+=sttDay; monthly[key].llm+=llmDay; monthly[key].sms+=smsDay;
+    monthly[key].delivery+=delivery; monthly[key].radius+=radius; monthly[key].tts+=ttsDay; monthly[key].payroll+=payrollDay; monthly[key].profit+=profit;
+  }
+
+  const scenarios=Object.values(scenarioAgg).map(s=>{
+    const cost=s.stt+s.llm+s.sms;
+    return {...s,cost,revenuePerCall:s.calls?s.revenue/s.calls:0,costPerCall:s.calls?cost/s.calls:0,marginPerCall:s.calls?s.margin/s.calls:0};
+  });
+
+  return {shares,rubSec,llmReqCost,totalUnknown,totalCallsServed,totalRevenue,totalSTT,totalLLM,totalSMS,totalDelivery,totalRadius,totalTTS,totalPayroll,totalProfit,scenarios,monthly:Object.values(monthly)};
+}
+
+function sensitivity(s,res){
+  const year=calculate({start:'2026-01-01',end:'2026-12-31'});
+  const callsP=res.scenarios.find(x=>x.id===s.id)?.calls||0;
+  const callsY=year.scenarios.find(x=>x.id===s.id)?.calls||0;
+  const total=n(s.wait)+n(s.out)+n(s.input);
+  const deltaBill=s.billFirst3?1:(total>3?1:0);
+  const deltaRevenue=deltaBill*res.rubSec*res.shares.revenueEligibleEff;
+  const deltaStt=s.useSTT?n(state.constants.sttSec):0;
+  return {
+    wait:{period:callsP*deltaRevenue,year:callsY*deltaRevenue},
+    out:{period:callsP*deltaRevenue,year:callsY*deltaRevenue},
+    input:{period:callsP*(deltaRevenue-deltaStt),year:callsY*(deltaRevenue-deltaStt)}
+  };
+}
+
+const tabs=[
+  ['period','Период и база'],
+  ['distribution','Распределение незнакомых звонков'],
+  ['scenarios','Сценарии'],
+  ['segments','Сегменты / ограничения выручки'],
+  ['constants','Константы и расходы'],
+  ['results','Результаты']
+];
+
+function info(text){ return `<button class='info' onclick="openModal('Пояснение',${JSON.stringify(text)})">i</button>`; }
+function renderTabs(){ document.getElementById('tabs').innerHTML=tabs.map(([k,nm])=>`<button class='${state.tab===k?'active':''}' onclick="state.tab='${k}';render()">${nm}</button>`).join(''); }
+function openModal(title,body){ document.getElementById('modalTitle').textContent=title; document.getElementById('modalBody').textContent=body; document.getElementById('modalBg').style.display='flex'; }
+function closeModal(){ document.getElementById('modalBg').style.display='none'; }
+
+function renderPeriod(){
+  return `<div class='panel'><h3>Период расчета</h3><div class='grid3'>
+  <label>Дата начала<input type='date' value='${state.period.start}' onchange="state.period.start=this.value;render()"></label>
+  <label>Дата конца<input type='date' value='${state.period.end}' onchange="state.period.end=this.value;render()"></label>
+  <label>Часовой пояс<input value='${state.period.timezone}' disabled></label>
+  </div></div>
+  <div class='panel'><h3>Таймлайн обслуживаемой базы ${info(help.база)}</h3>
+  <table><tr><th>Дата</th><th>Обслуживаемая база, пользователей</th><th></th></tr>
+  ${state.rollout.userTimepoints.map((p,i)=>`<tr><td><input type='date' value='${p.date}' onchange='state.rollout.userTimepoints[${i}].date=this.value;render()'></td><td><input type='number' value='${p.users}' onchange='state.rollout.userTimepoints[${i}].users=parseFloat(this.value)||0;render()'></td><td><button onclick='state.rollout.userTimepoints.splice(${i},1);render()'>Удалить</button></td></tr>`).join('')}
+  </table><button onclick="state.rollout.userTimepoints.push({date:state.period.start,users:0});render()">Добавить точку</button></div>`;
+}
+
+function renderDistribution(){
+  const avg=avgUnknownCallsPerUserPerDay();
+  const last=[...state.rollout.userTimepoints].sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
+  const callsAtLast=(last?n(last.users):0)*avg;
+  return `<div class='panel'><h3>Распределение незнакомых звонков ${info(help.распределение)}</h3>
+  <table><tr><th>Корзина</th><th>Доля пользователей, %</th><th>Звонков на пользователя за период</th><th>Длина периода, дней</th><th></th></tr>
+  ${state.distributionBuckets.map((b,i)=>`<tr><td><input value='${b.bucket}' onchange='state.distributionBuckets[${i}].bucket=this.value;render()'></td><td><input type='number' step='0.01' value='${b.percent}' onchange='state.distributionBuckets[${i}].percent=parseFloat(this.value)||0;render()'></td><td><input type='number' step='0.01' value='${b.calls}' onchange='state.distributionBuckets[${i}].calls=parseFloat(this.value)||0;render()'></td><td><input type='number' step='0.1' value='${b.days}' onchange='state.distributionBuckets[${i}].days=parseFloat(this.value)||0;render()'></td><td><button onclick='state.distributionBuckets.splice(${i},1);render()'>Удалить</button></td></tr>`).join('')}
+  </table><button onclick="state.distributionBuckets.push({bucket:'новая',percent:0,calls:0,days:30});render()">Добавить корзину</button>
+  <p><b>Среднее незнакомых звонков на пользователя в день: ${fmt(avg)}</b></p>
+  <p><b>Незнакомых звонков в день для последней точки базы (${last?last.date:'-'}) : ${fmt(callsAtLast)}</b></p>
+  </div>`;
+}
+
+function renderScenarios(){
+  const sum=state.scenarios.reduce((a,s)=>a+(s.enabled?n(s.sharePercent):0),0);
+  return `<div class='panel'><div class='row'><h3>Сценарии ${info(help.доля)}</h3><button onclick='state.scenarios=currentPreset();render()'>Загрузить пресет Как сейчас</button><button onclick='normalizeShares(state.scenarios);render()'>Нормализовать доли до 100%</button></div>
+  <p><b>Сумма долей включенных сценариев = ${fmt(sum)}%</b></p>
+  <table><tr><th>Сценарий</th><th>Включен</th><th>Доля от незнакомых звонков, %</th><th>Ожидание, сек</th><th>Исходящая речь, сек</th><th>Входящая речь, сек</th><th>Первые 3 секунды тарифицируются?</th><th>STT включено?</th><th>LLM включено?</th><th>Запросов в LLM на 1 звонок</th><th>SMS отправляем?</th><th>Правило SMS</th></tr>
+  ${state.scenarios.map((s,i)=>`<tr><td>${s.name}</td><td><input type='checkbox' ${s.enabled?'checked':''} onchange='state.scenarios[${i}].enabled=this.checked;render()'></td><td><input type='number' step='0.001' value='${s.sharePercent}' onchange='state.scenarios[${i}].sharePercent=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.wait}' onchange='state.scenarios[${i}].wait=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.out}' onchange='state.scenarios[${i}].out=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.input}' onchange='state.scenarios[${i}].input=parseFloat(this.value)||0;render()'></td><td><input type='checkbox' ${s.billFirst3?'checked':''} onchange='state.scenarios[${i}].billFirst3=this.checked;render()'></td><td><input type='checkbox' ${s.useSTT?'checked':''} onchange='state.scenarios[${i}].useSTT=this.checked;render()'></td><td><input type='checkbox' ${s.useLLM?'checked':''} onchange='state.scenarios[${i}].useLLM=this.checked;render()'></td><td><input type='number' step='0.01' value='${s.llmReq}' onchange='state.scenarios[${i}].llmReq=parseFloat(this.value)||0;render()'></td><td><input type='checkbox' ${s.useSMS?'checked':''} onchange='state.scenarios[${i}].useSMS=this.checked;render()'></td><td><select onchange='state.scenarios[${i}].smsRule=this.value;render()'>${['нет','всегда','только лайк-спам (доля X)','нет первой фразы','не успели определить / повесили трубку'].map(v=>`<option ${s.smsRule===v?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
+  </table></div>`;
+}
+
+function renderSegments(){
+  const s=segmentShares();
+  return `<div class='panel'><h3>Сегменты и ограничения выручки ${info(help.сегменты)}</h3>
+  <table><tr><th>Абонент дома? (1/0)</th><th>Внутри сети? (1/0)</th><th>Звонок из домашнего региона? (1/0)</th><th>Количество звонков</th></tr>
+  ${state.segments.rows.map((r,i)=>`<tr><td><input type='number' value='${r.home_flag}' onchange='state.segments.rows[${i}].home_flag=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.same_fact}' onchange='state.segments.rows[${i}].same_fact=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.from_home}' onchange='state.segments.rows[${i}].from_home=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.count}' onchange='state.segments.rows[${i}].count=parseFloat(this.value)||0;render()'></td></tr>`).join('')}
+  </table>
+  <p>Доля не дома: <b>${fmt(s.notHome)}</b></p>
+  <p>Доля внутри сети: <b>${fmt(s.sameFact)}</b></p>
+  <p>Доля с выручкой (1 - доля внутри сети): <b>${fmt(s.revenueEligible)}</b></p>
+  <div class='row'>
+    <label><input type='checkbox' ${state.segments.overrideNotHome?'checked':''} onchange='state.segments.overrideNotHome=this.checked;render()'> Переопределить долю не дома вручную</label>
+    <input type='number' step='0.0001' value='${state.segments.overrideNotHomeValue}' onchange='state.segments.overrideNotHomeValue=parseFloat(this.value)||0;render()'>
+    <label><input type='checkbox' ${state.segments.overrideRevenueEligible?'checked':''} onchange='state.segments.overrideRevenueEligible=this.checked;render()'> Переопределить долю выручки вручную</label>
+    <input type='number' step='0.0001' value='${state.segments.overrideRevenueEligibleValue}' onchange='state.segments.overrideRevenueEligibleValue=parseFloat(this.value)||0;render()'>
+  </div></div>`;
+}
+
+function renderConstants(){
+  const c=state.constants;
+  return `<div class='panel'><h3>Константы выручки и расходов ${info(help.tts)}</h3><div class='grid3'>
+  <label>Интерконнект, руб/мин<input type='number' step='0.0001' value='${c.interconnectMin}' onchange='state.constants.interconnectMin=parseFloat(this.value)||0;render()'></label>
+  <label>Интерконнект, руб/сек<input disabled value='${fmt(n(c.interconnectMin)/60)}'></label>
+  <label>Стоимость распознавания, руб/сек<input type='number' step='0.0001' value='${c.sttSec}' onchange='state.constants.sttSec=parseFloat(this.value)||0;render()'></label>
+  <label>Цена LLM, руб / 1 000 000 токенов<input type='number' value='${c.llmPer1M}' onchange='state.constants.llmPer1M=parseFloat(this.value)||0;render()'></label>
+  <label>Исходящих токенов на запрос<input type='number' value='${c.llmOut}' onchange='state.constants.llmOut=parseFloat(this.value)||0;render()'></label>
+  <label>Входящих токенов на запрос<input type='number' value='${c.llmIn}' onchange='state.constants.llmIn=parseFloat(this.value)||0;render()'></label>
+  <label>Вес входящих токенов<input type='number' value='${c.llmInWeight}' onchange='state.constants.llmInWeight=parseFloat(this.value)||0;render()'></label>
+  <label>Стоимость 1 запроса LLM<input disabled value='${money(llmCostPerRequest())}'></label>
+  <label>Стоимость синтеза, руб/символ<input type='number' step='0.0001' value='${c.ttsChar}' onchange='state.constants.ttsChar=parseFloat(this.value)||0;render()'></label>
+  <label>Уникальных фраз в год<input type='number' value='${c.ttsPhrasesYear}' onchange='state.constants.ttsPhrasesYear=parseFloat(this.value)||0;render()'></label>
+  <label>Среднее символов в фразе<input type='number' value='${c.ttsChars}' onchange='state.constants.ttsChars=parseFloat(this.value)||0;render()'></label>
+  <label>Цена SMS, руб<input type='number' step='0.0001' value='${c.smsPrice}' onchange='state.constants.smsPrice=parseFloat(this.value)||0;render()'></label>
+  <label>Доля лайк-спама для SMS<input type='number' step='0.0001' value='${c.smsLikeSpamShare}' onchange='state.constants.smsLikeSpamShare=parseFloat(this.value)||0;render()'></label>
+  <label>Delivery Regions, руб/звонок<input type='number' step='0.0001' value='${c.deliveryPrice}' onchange='state.constants.deliveryPrice=parseFloat(this.value)||0;render()'></label>
+  <label>Тариф Radius, МТС, руб/мин<input type='number' step='0.0001' value='${c.radiusMts}' onchange='state.constants.radiusMts=parseFloat(this.value)||0;render()'></label>
+  <label>Тариф Radius, T2, руб/мин<input type='number' step='0.0001' value='${c.radiusT2}' onchange='state.constants.radiusT2=parseFloat(this.value)||0;render()'></label>
+  <label>Доля МТС<input type='number' step='0.0001' value='${c.shareMts}' onchange='state.constants.shareMts=parseFloat(this.value)||0;render()'></label>
+  <label>Средняя длительность radio, минут<select onchange='state.constants.radioMode=this.value;render()'><option ${c.radioMode==='ввести вручную'?'selected':''}>ввести вручную</option><option ${c.radioMode==='считать из распределения'?'selected':''}>считать из распределения</option></select></label>
+  <label>Вручную: минут на звонок<input type='number' step='0.0001' value='${c.avgRadioManual}' onchange='state.constants.avgRadioManual=parseFloat(this.value)||0;render()'></label>
+  </div>
+  <h4>Распределение radio (если выбран режим расчета из распределения)</h4>
+  <table><tr><th>Минут на звонок</th><th>Количество</th><th></th></tr>${c.radioDist.map((r,i)=>`<tr><td><input type='number' step='0.01' value='${r.minutes}' onchange='state.constants.radioDist[${i}].minutes=parseFloat(this.value)||0;render()'></td><td><input type='number' step='0.01' value='${r.cnt}' onchange='state.constants.radioDist[${i}].cnt=parseFloat(this.value)||0;render()'></td><td><button onclick='state.constants.radioDist.splice(${i},1);render()'>Удалить</button></td></tr>`).join('')}</table>
+  <button onclick="state.constants.radioDist.push({minutes:1,cnt:1});render()">Добавить строку</button>
+  <h4>ФОТ по месяцам, руб</h4><div class='grid3'>${state.payroll.map((v,i)=>`<label>${i+1}<input type='number' value='${v}' onchange='state.payroll[${i}]=parseFloat(this.value)||0;render()'></label>`).join('')}</div>
+  </div>`;
+}
+
+function toCsv(res){
+  const a=['Сценарии','Сценарий,Звонки,Выручка,STT,LLM,SMS количество,SMS,Маржа,Выручка на звонок,Себестоимость на звонок,Маржа на звонок'];
+  res.scenarios.forEach(s=>a.push(`${s.name},${s.calls},${s.revenue},${s.stt},${s.llm},${s.smsCount},${s.sms},${s.margin},${s.revenuePerCall},${s.costPerCall},${s.marginPerCall}`));
+  a.push(''); a.push('Месяцы'); a.push('Месяц,Звонки,Выручка,STT,LLM,SMS,Delivery,Radius,TTS,ФОТ,Прибыль');
+  res.monthly.forEach(m=>a.push(`${m.month},${m.calls},${m.revenue},${m.stt},${m.llm},${m.sms},${m.delivery},${m.radius},${m.tts},${m.payroll},${m.profit}`));
+  return a.join('\n');
+}
+function download(name,body,type){const el=document.createElement('a');el.href=URL.createObjectURL(new Blob([body],{type}));el.download=name;el.click();}
+
+function drawChart(monthly){
+  if(!monthly.length) return '';
+  const w=860,h=200,p=24; const vals=monthly.map(x=>x.profit); const min=Math.min(...vals), max=Math.max(...vals); const span=(max-min)||1;
+  const pts=monthly.map((m,i)=>`${p+i*(w-2*p)/Math.max(1,monthly.length-1)},${h-p-(m.profit-min)*(h-2*p)/span}`).join(' ');
+  return `<svg class='chart' viewBox='0 0 ${w} ${h}'><polyline fill='none' stroke='#2563eb' stroke-width='2' points='${pts}'/></svg>`;
+}
+
+function renderResults(){
+  const r=calculate();
+  const variable=r.totalSTT+r.totalLLM+r.totalSMS+r.totalDelivery+r.totalRadius+r.totalTTS;
+  return `<div class='panel'><h3>Итог по периоду</h3>
+  <div class='kpi'>
+    <div class='card'><div class='small'>Звонков с незнакомых номеров</div><b>${fmt(r.totalUnknown)}</b></div>
+    <div class='card'><div class='small'>Выручка</div><b class='click' onclick="openModal('Выручка','Формула по сценарию: звонки * тарифицируемые секунды * (интерконнект/60) * доля выручки. Сумма по всем сценариям и дням.\nРезультат: ${money(r.totalRevenue)}')">${money(r.totalRevenue)}</b></div>
+    <div class='card'><div class='small'>Переменные расходы</div><b class='click' onclick="openModal('Переменные расходы','STT + LLM + SMS + Delivery + Radius + TTS = ${money(variable)}')">${money(variable)}</b></div>
+    <div class='card'><div class='small'>ФОТ</div><b class='click' onclick="openModal('ФОТ','Сумма дневного ФОТ по календарю месяцев: ${money(r.totalPayroll)}')">${money(r.totalPayroll)}</b></div>
+    <div class='card'><div class='small'>Прибыль</div><b class='click' onclick="openModal('Прибыль','Прибыль = Выручка - переменные расходы - ФОТ = ${money(r.totalProfit)}')">${money(r.totalProfit)}</b></div>
+  </div>
+  <div class='row' style='margin-top:8px'>
+    <button onclick='download("результаты.json",JSON.stringify({period:state.period,usersTimeline:state.rollout.userTimepoints,distribution:state.distributionBuckets,segments:state.segments,scenarios:state.scenarios,constants:state.constants,payroll:state.payroll,results:calculate()},null,2),"application/json")'>Экспорт JSON</button>
+    <button onclick='download("результаты.csv",toCsv(calculate()),"text/csv")'>Экспорт CSV</button>
+  </div></div>
+
+  <div class='panel'><h3>Юнит-экономика по сценариям</h3>
+  <table><tr><th>Сценарий</th><th>Звонки</th><th>Выручка</th><th>STT</th><th>LLM</th><th>SMS количество</th><th>SMS</th><th>Маржа</th><th>Выручка на звонок</th><th>Себестоимость на звонок</th><th>Маржа на звонок</th><th>Цена +1 секунды</th></tr>
+  ${r.scenarios.map(s=>{const base=state.scenarios.find(x=>x.id===s.id); const sen=sensitivity(base,r); return `<tr><td>${s.name}</td><td>${fmt(s.calls)}</td><td class='click' onclick="openModal('Детали выручки - ${s.name}','Формула: звонки * тарифицируемые секунды * руб/сек * доля выручки.\nПодстановка: ${fmt(s.calls)} * ${fmt(s.billable)} * ${fmt(r.rubSec)} * ${fmt(r.shares.revenueEligibleEff)} = ${money(s.revenue)}')">${money(s.revenue)}</td><td>${money(s.stt)}</td><td>${money(s.llm)}</td><td>${fmt(s.smsCount)}</td><td>${money(s.sms)}</td><td>${money(s.margin)}</td><td>${money(s.revenuePerCall)}</td><td>${money(s.costPerCall)}</td><td>${money(s.marginPerCall)}</td><td><span class='click' onclick="openModal('Цена +1 секунды - ${s.name}','+1 сек ожидания: период ${money(sen.wait.period)}, год ${money(sen.wait.year)}\n+1 сек исходящей: период ${money(sen.out.period)}, год ${money(sen.out.year)}\n+1 сек входящей: период ${money(sen.input.period)}, год ${money(sen.input.year)}\nПочему: +1 сек может увеличить тарифицируемое время; для входящей еще добавляется STT.')">подробно</span></td></tr>`;}).join('')}
+  </table></div>
+
+  <div class='panel'><h3>Итоги по месяцам</h3>${drawChart(r.monthly)}
+  <table><tr><th>Месяц</th><th>Звонки</th><th>Выручка</th><th>STT</th><th>LLM</th><th>SMS</th><th>Delivery</th><th>Radius</th><th>TTS</th><th>ФОТ</th><th>Прибыль</th></tr>
+  ${r.monthly.map(m=>`<tr><td>${m.month}</td><td>${fmt(m.calls)}</td><td>${money(m.revenue)}</td><td>${money(m.stt)}</td><td>${money(m.llm)}</td><td>${money(m.sms)}</td><td>${money(m.delivery)}</td><td>${money(m.radius)}</td><td>${money(m.tts)}</td><td>${money(m.payroll)}</td><td>${money(m.profit)}</td></tr>`).join('')}
+  </table></div>`;
+}
+
+function render(){
+  renderTabs();
+  const c=document.getElementById('content');
+  c.innerHTML = state.tab==='period'?renderPeriod()
+    : state.tab==='distribution'?renderDistribution()
+    : state.tab==='scenarios'?renderScenarios()
+    : state.tab==='segments'?renderSegments()
+    : state.tab==='constants'?renderConstants()
+    : renderResults();
+}
+render();
 </script>
 </body>
 </html>
