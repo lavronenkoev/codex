@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Приёмная 23.02. Спаси мир от СПАМа</title>
+  <style>
+    :root{--bg:#0b0f14;--card:#121a25;--bd:#2a3444;--txt:#d5e2f1;--muted:#90a1b8;--g:#27e57f;--r:#ff5572;--y:#ffd166}
+    *{box-sizing:border-box} body{margin:0;background:radial-gradient(900px 500px at 20% -20%,#1b2433,var(--bg));color:var(--txt);font-family:Inter,system-ui,sans-serif}
+    .hidden{display:none!important}.wrap{max-width:1100px;margin:0 auto;padding:16px}.card{background:linear-gradient(180deg,#141d29,#111924);border:1px solid var(--bd);border-radius:14px}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}
+    input,select,button{font:inherit}.field,input,select{background:#0e151f;border:1px solid var(--bd);color:var(--txt);padding:10px;border-radius:10px}
+    button{padding:10px 12px;border-radius:10px;border:1px solid #315273;background:#24384e;color:#eef6ff;cursor:pointer}.primary{background:#1d9257;border-color:#1d9257}
+    h1{font-size:clamp(28px,5vw,42px);margin:8px 0} h2{margin:0 0 8px;font-size:20px} .muted{color:var(--muted)}
+    .topbar{position:sticky;top:0;z-index:5;background:rgba(11,15,20,.85);backdrop-filter:blur(6px);padding:10px 0;margin-bottom:10px}
+    .rank-box{padding:12px;margin-bottom:12px}
+    .stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.stat{background:#111a27;border:1px solid var(--bd);border-radius:10px;padding:8px}
+    .board{padding:12px}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}.table-wrap{overflow:auto;border:1px solid var(--bd);border-radius:10px}
+    table{width:100%;border-collapse:collapse;min-width:980px}th,td{padding:8px;border-bottom:1px solid #202b3b;white-space:nowrap;font-size:13px}th{position:sticky;top:0;background:#182435}
+    .badge{font-size:12px;padding:3px 8px;border-radius:999px;display:inline-block}.b1{background:#4b3c09;color:#ffe08f}.b2{background:#2d3648;color:#d3e7ff}.b3{background:#3d3330;color:#ffd8bd}.b4{background:#1f2b3a;color:#b9cce0}
+    #access,#main,#game{min-height:100vh}.center{display:grid;place-items:center;padding:16px}.access-card{width:min(460px,100%);padding:20px}
+    .modal-bg{position:fixed;inset:0;background:rgba(5,9,14,.74);display:grid;place-items:center;padding:14px;z-index:9}.modal{width:min(980px,100%);max-height:90vh;overflow:auto;padding:14px}
+    .chars{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;margin-top:10px}.char{border:1px solid var(--bd);border-radius:12px;padding:8px;background:#0f1722;cursor:pointer}.char.active{border-color:var(--g)}
+    .char img{width:48px;height:48px;border-radius:10px;object-fit:cover;border:1px solid #345}
+    #gameCanvas{width:100%;max-width:1100px;border:1px solid var(--bd);border-radius:12px;background:#0f1825;display:block}
+    .hud{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:8px 0}.hud>div{border:1px solid var(--bd);background:#101926;border-radius:10px;padding:8px}
+    .bar{height:10px;border:1px solid var(--bd);background:#172334;border-radius:99px;overflow:hidden}.bar>div{height:100%;width:0;background:linear-gradient(90deg,#1fca6e,#ffd166,#ff5572)}
+    .count{position:absolute;inset:0;display:grid;place-items:center;font-size:88px;font-weight:800;text-shadow:0 10px 24px #000}
+    @media(max-width:780px){.stats,.hud{grid-template-columns:1fr}.fixed-play{position:fixed;left:12px;right:12px;bottom:12px;z-index:8}}
+  </style>
+</head>
+<body>
+<section id="access" class="center hidden"><div class="card access-card"><h1>Приёмная 23.02. Спаси мир от СПАМа</h1><p class="muted">Введите код доступа</p><div class="row"><input id="pass" type="password" class="grow"/><button id="loginBtn" class="primary">Войти</button></div><p id="loginMsg" class="muted"></p></div></section>
+
+<section id="main" class="hidden"><div class="wrap">
+  <div class="topbar"><div class="row"><div class="grow"><h1 style="margin:0">Приёмная 23.02</h1></div><button id="playBtn" class="primary fixed-play">Играть</button><button id="logoutBtn">Выйти</button></div></div>
+  <div class="card rank-box"><h2>Рейтинг персонажей</h2><div id="charStats" class="stats"></div></div>
+  <div class="card board">
+    <div class="toolbar">
+      <select id="mode"><option value="best">Лучшие по никам</option><option value="all">Все забеги</option></select>
+      <select id="charFilter"></select>
+      <button id="reload">Обновить</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>Место</th><th>Ранг</th><th>Ник</th><th>Персонаж</th><th>Баллы</th><th>Время (с)</th><th>P useful</th><th>R useful</th><th>P spam</th><th>R spam</th><th>Acc</th><th>Дата</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </div>
+</div></section>
+
+<section id="game" class="hidden"><div class="wrap">
+  <div class="hud"><div><div class="muted">Баллы</div><b id="hScore">0</b></div><div><div class="muted">Таймер</div><b id="hTime">0.0</b></div><div><div class="muted">Комбо</div><b id="hCombo">0</b></div><div><div class="muted">Эффект</div><b id="hFx">—</b></div></div>
+  <div style="margin-bottom:8px"><div class="muted">Недовольство</div><div class="bar"><div id="hBar"></div></div><div id="hD">0%</div></div>
+  <div style="position:relative"><canvas id="gameCanvas" width="1100" height="420"></canvas><div id="count" class="count hidden"></div></div>
+  <div class="row" style="margin-top:8px"><div class="muted grow">Управление: Space / ↑</div><button id="toMain">В главное меню</button></div><p id="gMsg" class="muted"></p>
+</div></section>
+
+<div id="modal" class="modal-bg hidden"><div class="card modal"><div class="row"><input id="nick" placeholder="Ник" class="grow" maxlength="24"/><button id="start" class="primary">Старт</button><button id="close">Отмена</button></div><div id="chars" class="chars"></div></div></div>
+
+<script>
+const API='';const LS_TOKEN='p2302_token';const LS_NICK='p2302_nick';
+const R={spawnIntervalStartMs:1050,spawnIntervalMinMs:550,spawnScalePer10s:.94,speedStart:9,speedScalePer10s:1.09,speedMax:18,vipCooldownMs:16000,vipMinDissat:30,probs:{GREEN:.605,RED:.38,VIP:.015},jumpVelocity:-15.5,gravity:.9,playerW:64,playerH:70,groundY:336,dissatisfactionMax:100,scoreGreen:1,scoreRedJump:1,greenMissPenalty:10,redCatchPenalty:5,vipCatchDelta:-20,vipMissDelta:20,slowDurationMs:2500,slowSpeedFactor:.8,slowSpawnFactor:1.10,slowCooldownMs:22000};
+const C=[
+{id:'ilikaev',name:'Иликаев Алексей',role:'Разработчик процедур',slogan:'По регламенту — значит правильно.',avatarUrl:'assets/characters/ilikaev.png',ability:{key:'RED_JUMP_REDUCES_DISSAT',params:{dissatDeltaPerRedJump:-1,clampMin:0}}},
+{id:'titov',name:'Титов Роман',role:'Системный аналитик',slogan:'Я вижу паттерны.',avatarUrl:'assets/characters/titov.png',ability:{key:'RED_AUTO_JUMP_CHANCE',params:{chance:.10}}},
+{id:'rusakov',name:'Русаков Олег',role:'UX-редактор',slogan:'Без боли и лишнего шума.',avatarUrl:'assets/characters/rusakov.png',ability:{key:'GREEN_MISS_PENALTY_OVERRIDE',params:{greenMissPenaltyPct:8}}},
+{id:'andreev',name:'Андреев Александр',role:'Лид продуктовой аналитики',slogan:'Главное — метрики.',avatarUrl:'assets/characters/andreev.png',ability:{key:'GREEN_SCORE_OVERRIDE',params:{greenScore:2}}},
+{id:'galkin',name:'Галкин Евгений',role:'Лид разработки',slogan:'Стабильно в проде.',avatarUrl:'assets/characters/galkin.png',ability:{key:'RED_CATCH_PENALTY_OVERRIDE',params:{redCatchPenaltyPct:4}}},
+{id:'pakulin',name:'Пакулин Александр',role:'Системный аналитик',slogan:'Сначала схема, потом звонки.',avatarUrl:'assets/characters/pakulin.png',ability:{key:'VIP_RULESET_OVERRIDE',params:{vipCooldownMs:12000,vipCatchDeltaPct:-15,vipMissDeltaPct:15}}},
+{id:'sayafarov',name:'Саяфаров Денис',role:'QA Auto',slogan:'Один баг — бесплатно.',avatarUrl:'assets/characters/sayafarov.png',ability:{key:'ONE_MISTAKE_NO_PENALTY',params:{uses:1}}},
+{id:'zaichkin',name:'Заичкин Данил',role:'Developer',slogan:'Хотфикс на лету.',avatarUrl:'assets/characters/zaichkin.png',ability:{key:'POST_MISTAKE_SHIELD_NO_SCORE',params:{shieldMs:2000}}},
+{id:'krivenko',name:'Кривенко Евгений',role:'Developer',slogan:'Серию не ломаем.',avatarUrl:'assets/characters/krivenko.png',ability:{key:'ONE_TIME_COMBO_SAVE',params:{uses:1}}},
+{id:'evdokimov',name:'Евдокимов Даниил',role:'Developer',slogan:'Оптимизация решает.',avatarUrl:'assets/characters/evdokimov.png',ability:{key:'SCORE_MULTIPLIER',params:{multiplier:1.10}}},
+{id:'pluzhnik',name:'Плужник Егор',role:'Developer',slogan:'Чистая линия.',avatarUrl:'assets/characters/pluzhnik.png',ability:{key:'GREEN_STREAK_HEAL_WITH_CAP',params:{everyGreens:3,healPct:3,capTotalHealPct:12,clampMin:0}}},
+{id:'esyunin',name:'Есюнин Никита',role:'Developer',slogan:'Чую полезный звонок.',avatarUrl:'assets/characters/esyunin.png',ability:{key:'GREEN_AUTO_CATCH_CHANCE',params:{chance:.10}}},
+{id:'mordvinov',name:'Мордвинов Сергей',role:'Developer',slogan:'Система выдержит.',avatarUrl:'assets/characters/mordvinov.png',ability:{key:'DISSAT_THRESHOLD_OVERRIDE',params:{thresholdPct:105}}}
+];
+const E=id=>document.getElementById(id); const S=(a,b)=>Math.max(a,Math.min(b,Infinity));
+const state={token:localStorage.getItem(LS_TOKEN)||'',selected:C[0].id,game:null,img:{}};
+const ui={access:E('access'),main:E('main'),game:E('game'),rows:E('rows'),charStats:E('charStats')};
+
+async function api(path,opt={}){const h={'Content-Type':'application/json',...(opt.headers||{})};if(state.token)h.Authorization='Bearer '+state.token;const r=await fetch(API+path,{...opt,headers:h});if(r.status===401){state.token='';localStorage.removeItem(LS_TOKEN);show('access');throw new Error('401');}if(!r.ok) throw new Error(await r.text());return r.json();}
+function show(k){ui.access.classList.add('hidden');ui.main.classList.add('hidden');ui.game.classList.add('hidden');ui[k].classList.remove('hidden');}
+function ch(id){return C.find(x=>x.id===id)||C[0]} function pct(x){return (x*100).toFixed(1)+'%'} function sec(ms){return (ms/1000).toFixed(1)}
+function m(r){const t=r.useful_caught+r.useful_missed+r.spam_jumped+r.spam_caught;return{pu:r.useful_caught/Math.max(1,r.useful_caught+r.spam_caught),ru:r.useful_caught/Math.max(1,r.useful_caught+r.useful_missed),ps:r.spam_jumped/Math.max(1,r.spam_jumped+r.useful_missed),rs:r.spam_jumped/Math.max(1,r.spam_jumped+r.spam_caught),a:(r.useful_caught+r.spam_jumped)/Math.max(1,t)}}
+function rank(i){if(i===0)return['👑','Главный босс Приёмной','b1'];if(i===1)return['🥇','Хранитель звонков','b2'];if(i===2)return['🥈','Защитник от спама','b3'];return['🥉','Стажёр Приёмной','b4'];}
+
+async function loadBoard(){const mode=E('mode').value,character=E('charFilter').value||'all';const data=await api(`/api/runs?mode=${mode}&character=${encodeURIComponent(character)}&limit=200`);ui.rows.innerHTML=(data.rows||[]).map((r,i)=>{const z=m(r),rk=rank(i);return `<tr><td>${i+1}</td><td><span class='badge ${rk[2]}'>${rk[0]} ${rk[1]}</span></td><td>${r.nick_display}</td><td>${ch(r.character_id).name}</td><td>${r.score}</td><td>${sec(r.survival_ms)}</td><td>${pct(z.pu)}</td><td>${pct(z.ru)}</td><td>${pct(z.ps)}</td><td>${pct(z.rs)}</td><td>${pct(z.a)}</td><td>${new Date(r.created_at).toLocaleString('ru-RU')}</td></tr>`}).join('')||'<tr><td colspan="12">Нет данных</td></tr>'}
+async function loadSummary(){const data=await api('/api/characters/summary');const map=new Map(C.map(c=>[c.id,{id:c.id,name:c.name,plays:0,bestS:0,bestT:0,uc:0,um:0,sj:0,sc:0,a:0}]));(data.rows||[]).forEach(r=>{const x=map.get(r.character_id);if(!x)return;x.plays=r.plays;x.bestS=r.best_score;x.bestT=r.best_survival;x.uc=r.total_useful_caught;x.um=r.total_useful_missed;x.sj=r.total_spam_jumped;x.sc=r.total_spam_caught;const t=x.uc+x.um+x.sj+x.sc;x.a=(x.uc+x.sj)/Math.max(1,t)});const arr=[...map.values()];const p=[...arr].sort((a,b)=>b.plays-a.plays)[0],s=[...arr].sort((a,b)=>b.bestT-a.bestT)[0],a=[...arr].sort((x,y)=>y.a-x.a)[0],n=[...arr].sort((x,y)=>x.a-y.a)[0];ui.charStats.innerHTML=[['Самый популярный',`${p.name} (${p.plays})`],['Самый выживаемый',`${s.name} (${sec(s.bestT)}с)`],['Самый точный',`${a.name} (${pct(a.a)})`],['Самый неточный',`${n.name} (${pct(n.a)})`]].map(x=>`<div class='stat'><div class='muted'>${x[0]}</div><b>${x[1]}</b></div>`).join('')}
+async function refresh(){await Promise.all([loadBoard(),loadSummary()])}
+
+async function login(){try{const d=await api('/api/login',{method:'POST',body:JSON.stringify({password:E('pass').value})});state.token=d.token;localStorage.setItem(LS_TOKEN,d.token);show('main');await refresh();}catch{E('loginMsg').textContent='Неверный код доступа';}}
+async function bootstrap(){E('charFilter').innerHTML='<option value="all">Все персонажи</option>'+C.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');if(state.token){try{await api('/api/me');show('main');await refresh();return;}catch{}}show('access')}
+
+function renderChars(){E('chars').innerHTML=C.map(c=>`<div class='char ${c.id===state.selected?'active':''}' data-id='${c.id}'><div class='row'><img src='${c.avatarUrl}'/><div><b>${c.name}</b><div class='muted'>${c.role}</div></div></div><div class='muted'>${c.slogan}</div></div>`).join('');[...E('chars').children].forEach(x=>x.onclick=()=>{state.selected=x.dataset.id;renderChars()})}
+
+function preload(){['assets/phone_green.png','assets/phone_red.png','assets/phone_vip.png',...C.map(c=>c.avatarUrl)].forEach(src=>{const i=new Image();i.src=src;state.img[src]=i;});}
+function applyAbility(g){const p=g.character.ability.params;switch(g.character.ability.key){case'GREEN_MISS_PENALTY_OVERRIDE':g.greenMissPenalty=p.greenMissPenaltyPct;break;case'GREEN_SCORE_OVERRIDE':g.greenScore=p.greenScore;break;case'RED_CATCH_PENALTY_OVERRIDE':g.redCatchPenalty=p.redCatchPenaltyPct;break;case'VIP_RULESET_OVERRIDE':g.vipCooldownMs=p.vipCooldownMs;g.vipCatchDelta=p.vipCatchDeltaPct;g.vipMissDelta=p.vipMissDeltaPct;break;case'ONE_MISTAKE_NO_PENALTY':g.noPenalty=p.uses;break;case'ONE_TIME_COMBO_SAVE':g.comboSave=p.uses;break;case'SCORE_MULTIPLIER':g.mul=p.multiplier;break;case'GREEN_AUTO_CATCH_CHANCE':g.greenAuto=p.chance;break;case'RED_AUTO_JUMP_CHANCE':g.redAuto=p.chance;break;case'DISSAT_THRESHOLD_OVERRIDE':g.threshold=p.thresholdPct;break;}}
+function startGame(nick,character){state.game={nick,character,running:true,start:performance.now(),last:performance.now(),player:{x:100,y:R.groundY-R.playerH,vy:0,on:true},objs:[],parts:[],spawnT:0,nextSpawn:R.spawnIntervalStartMs,lastVip:-1e12,score:0,d:0,threshold:R.dissatisfactionMax,usefulCaught:0,usefulMissed:0,spamJumped:0,spamCaught:0,combo:0,streak:0,slowUntil:0,slowCdUntil:0,shieldUntil:0,noPenalty:0,comboSave:0,totalHeal:0,fx:'—',jump:false,mul:1,greenScore:R.scoreGreen,greenMissPenalty:R.greenMissPenalty,redCatchPenalty:R.redCatchPenalty,vipCooldownMs:R.vipCooldownMs,vipCatchDelta:R.vipCatchDelta,vipMissDelta:R.vipMissDelta,greenAuto:0,redAuto:0};applyAbility(state.game);countdown()}
+function penalty(g,val){if(performance.now()<g.shieldUntil)return;if(g.noPenalty>0){g.noPenalty--;g.fx='Откат';return;}g.d+=val}
+function add(g,v){if(performance.now()<g.shieldUntil)return;g.score+=Math.round(v*g.mul)}
+function miss(g){if(g.comboSave>0){g.comboSave--;g.fx='Серия сохранена';return;}g.combo=0;g.streak=0;if(g.character.ability.key==='POST_MISTAKE_SHIELD_NO_SCORE')g.shieldUntil=performance.now()+g.character.ability.params.shieldMs}
+function spawnType(g,t){const vip=g.d>=R.vipMinDissat&&t-g.lastVip>=g.vipCooldownMs;let x=Math.random();if(vip&&x<R.probs.VIP)return'VIP';x=vip?(x-R.probs.VIP)/(1-R.probs.VIP):x;return x<R.probs.GREEN?'GREEN':'RED'}
+function part(g,x,y,c){for(let i=0;i<8;i++)g.parts.push({x,y,vx:(Math.random()-.5)*4,vy:(Math.random()-1.2)*4,life:18,c})}
+function coll(a,b){return a.x<a.x+a.w && a.x+b.w>b.x && a.y<b.y+b.h && a.y+a.h>b.y}
+function resolve(g,o){const p={x:g.player.x,y:g.player.y,w:R.playerW,h:R.playerH};const hit=!(p.x+p.w<o.x||p.x>o.x+o.w||p.y+p.h<o.y||p.y>o.y+o.h);
+ if(o.type==='GREEN'&&!o.r&&g.greenAuto&&Math.random()<g.greenAuto&&Math.abs(o.x-p.x)<20){o.r=1;catchGreen(g,o)}
+ if(o.type==='RED'&&!o.r&&g.redAuto&&g.player.on&&Math.random()<g.redAuto&&Math.abs(o.x-p.x)<40){g.player.vy=R.jumpVelocity;g.player.on=false;g.fx='Автопрыжок'}
+ if(!o.r&&hit){o.r=1;if(o.type==='GREEN')catchGreen(g,o);if(o.type==='RED'){g.spamCaught++;penalty(g,g.redCatchPenalty);miss(g);part(g,o.x,o.y,'#ff5572')}if(o.type==='VIP'){g.d=Math.max(0,g.d+g.vipCatchDelta);part(g,o.x,o.y,'#ffd166')}}
+ if(!o.r&&o.x+o.w<g.player.x){o.r=1;if(o.type==='GREEN'){g.usefulMissed++;penalty(g,g.greenMissPenalty);miss(g)}if(o.type==='RED'){g.spamJumped++;add(g,R.scoreRedJump);if(g.character.ability.key==='RED_JUMP_REDUCES_DISSAT')g.d=Math.max(0,g.d+g.character.ability.params.dissatDeltaPerRedJump)}if(o.type==='VIP'){penalty(g,g.vipMissDelta);miss(g)}}}
+function catchGreen(g,o){add(g,g.greenScore);g.usefulCaught++;g.combo++;g.streak++;part(g,o.x,o.y,'#27e57f');if(g.combo>=5&&performance.now()>g.slowCdUntil){g.slowUntil=performance.now()+R.slowDurationMs;g.slowCdUntil=performance.now()+R.slowCooldownMs;g.fx='SLOW'}if(g.character.ability.key==='GREEN_STREAK_HEAL_WITH_CAP'){const p=g.character.ability.params;if(g.streak%p.everyGreens===0&&g.totalHeal<p.capTotalHealPct){const heal=Math.min(p.healPct,p.capTotalHealPct-g.totalHeal);g.totalHeal+=heal;g.d=Math.max(0,g.d-heal)}}}
+function hud(g){const t=g.running?performance.now()-g.start:g.end-g.start;E('hScore').textContent=g.score;E('hTime').textContent=(t/1000).toFixed(1)+' с';E('hCombo').textContent=g.combo;E('hFx').textContent=performance.now()<g.shieldUntil?'Щит':(performance.now()<g.slowUntil?'SLOW':g.fx);E('hBar').style.width=(Math.min(1,g.d/g.threshold)*100).toFixed(1)+'%';E('hD').textContent=g.d.toFixed(1)+'% / '+g.threshold+'%'}
+async function countdown(){show('game');const c=E('count');for(const t of ['3','2','1','Звонки!']){c.textContent=t;c.classList.remove('hidden');await new Promise(r=>setTimeout(r,650));}c.classList.add('hidden');requestAnimationFrame(loop)}
+function drawImg(src,x,y,w,h,fb){const i=state.img[src];const ctx=E('gameCanvas').getContext('2d');if(i&&i.complete&&i.naturalWidth>0)ctx.drawImage(i,x,y,w,h);else{ctx.fillStyle=fb;ctx.fillRect(x,y,w,h)}}
+function loop(ts){const g=state.game;if(!g||!g.running)return;const ctx=E('gameCanvas').getContext('2d');const dt=Math.min(33,ts-g.last);g.last=ts;const e=ts-g.start;const k=Math.floor(e/10000);const slow=ts<g.slowUntil;const sp=Math.min(R.speedMax,R.speedStart*Math.pow(R.speedScalePer10s,k))*(slow?R.slowSpeedFactor:1);g.nextSpawn=Math.max(R.spawnIntervalMinMs,R.spawnIntervalStartMs*Math.pow(R.spawnScalePer10s,k))*(slow?R.slowSpawnFactor:1);g.spawnT+=dt;if(g.spawnT>=g.nextSpawn){g.spawnT=0;const t=spawnType(g,ts);if(t==='VIP')g.lastVip=ts;g.objs.push({type:t,x:1140,y:R.groundY-40,w:44,h:44,r:0})}
+ if(g.jump&&g.player.on){g.player.vy=R.jumpVelocity;g.player.on=false}g.jump=false;g.player.vy+=R.gravity;g.player.y+=g.player.vy;if(g.player.y>=R.groundY-R.playerH){g.player.y=R.groundY-R.playerH;g.player.vy=0;g.player.on=true}
+ g.objs.forEach(o=>{o.x-=sp*(dt/16.67);resolve(g,o)});g.objs=g.objs.filter(o=>!o.r&&o.x+o.w>-40);g.parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.1;p.life--});g.parts=g.parts.filter(p=>p.life>0)
+ if(g.d>=g.threshold){g.running=false;finish();return}
+ ctx.clearRect(0,0,1100,420);ctx.fillStyle='#101a27';ctx.fillRect(0,0,1100,420);ctx.fillStyle='#182538';ctx.fillRect(0,R.groundY,1100,6);
+ drawImg(g.character.avatarUrl,g.player.x,g.player.y,R.playerW,R.playerH,'#4aa6ff');g.objs.forEach(o=>drawImg(o.type==='GREEN'?'assets/phone_green.png':o.type==='RED'?'assets/phone_red.png':'assets/phone_vip.png',o.x,o.y,o.w,o.h,o.type==='GREEN'?'#27e57f':o.type==='RED'?'#ff5572':'#ffd166'));
+ g.parts.forEach(p=>{ctx.globalAlpha=p.life/18;ctx.fillStyle=p.c;ctx.fillRect(p.x,p.y,4,4)});ctx.globalAlpha=1;hud(g);requestAnimationFrame(loop)}
+async function finish(){const g=state.game;g.end=performance.now();hud(g);E('gMsg').textContent=`Игра окончена. ${g.score} очков`;
+ await api('/api/runs',{method:'POST',body:JSON.stringify({nick:g.nick,characterId:g.character.id,score:g.score,survivalMs:Math.round(g.end-g.start),usefulCaught:g.usefulCaught,usefulMissed:g.usefulMissed,spamJumped:g.spamJumped,spamCaught:g.spamCaught,clientHash:navigator.userAgent.slice(0,120)})});
+ setTimeout(async()=>{show('main');await refresh()},900)}
+
+E('loginBtn').onclick=login;E('pass').onkeydown=e=>{if(e.key==='Enter')login()};E('reload').onclick=refresh;E('mode').onchange=loadBoard;E('charFilter').onchange=loadBoard;
+E('playBtn').onclick=()=>{E('nick').value=localStorage.getItem(LS_NICK)||'';renderChars();E('modal').classList.remove('hidden')};E('close').onclick=()=>E('modal').classList.add('hidden');E('modal').onclick=e=>{if(e.target===E('modal'))E('modal').classList.add('hidden')};
+E('start').onclick=()=>{const nick=(E('nick').value||'Игрок').trim().slice(0,24)||'Игрок';localStorage.setItem(LS_NICK,nick);E('modal').classList.add('hidden');startGame(nick,ch(state.selected))};
+window.onkeydown=e=>{if(state.game?.running&&(e.code==='Space'||e.code==='ArrowUp')){e.preventDefault();state.game.jump=true}};E('toMain').onclick=async()=>{if(state.game)state.game.running=false;show('main');await refresh()};E('logoutBtn').onclick=()=>{state.token='';localStorage.removeItem(LS_TOKEN);show('access')};
+preload();bootstrap();
+</script>
+</body>
+</html>
