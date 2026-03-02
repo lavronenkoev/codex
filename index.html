@@ -5,299 +5,224 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>P&L Приемная — локальный калькулятор</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; background: #f4f6fb; color: #0f172a; }
-    header { background: #0f172a; color: #fff; padding: 12px 16px; }
-    .wrap { max-width: 1420px; margin: 0 auto; padding: 14px; }
-    .panel { background: #fff; border: 1px solid #dbe2ef; border-radius: 10px; padding: 12px; margin-bottom: 12px; }
-    .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .grid { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    input, select, textarea, button { padding: 6px; box-sizing: border-box; }
-    input, select, textarea { width: 100%; border: 1px solid #cbd5e1; border-radius: 6px; }
-    button { border: 1px solid #94a3b8; border-radius: 6px; background: #fff; cursor: pointer; }
-    button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px; text-align: right; }
-    th { background: #f8fafc; }
-    td:first-child, th:first-child { text-align: left; }
-    .tabs { display: flex; gap: 8px; margin-bottom: 10px; }
-    .tabs button.active { background: #2563eb; color: #fff; }
-    .muted { color: #475569; font-size: 12px; }
-    .err { color: #b91c1c; font-size: 12px; }
-    .click { color: #1d4ed8; cursor: pointer; text-decoration: underline; }
-    .chip { background:#eef2ff; border:1px solid #c7d2fe; border-radius:8px; padding:4px 8px; }
-    .modalBg { position:fixed; inset:0; background:rgba(15,23,42,.5); display:none; align-items:center; justify-content:center; z-index:20; }
-    .modal { width:min(980px,94vw); max-height:82vh; overflow:auto; background:#fff; border-radius:10px; padding:12px; }
+    body { font-family: Arial,sans-serif; margin:0; background:#f4f6fb; color:#0f172a; }
+    header { background:#0f172a; color:#fff; padding:12px 16px; }
+    .wrap { max-width:1480px; margin:0 auto; padding:14px; }
+    .panel { background:#fff; border:1px solid #dbe2ef; border-radius:10px; padding:12px; margin-bottom:12px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .grid { display:grid; gap:8px; grid-template-columns:repeat(4,minmax(0,1fr)); }
+    input,select,textarea,button { padding:6px; box-sizing:border-box; }
+    input,select,textarea { width:100%; border:1px solid #cbd5e1; border-radius:6px; }
+    button { border:1px solid #94a3b8; border-radius:6px; background:#fff; cursor:pointer; }
+    button.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+    table { width:100%; border-collapse:collapse; font-size:12px; }
+    th,td { border:1px solid #e5e7eb; padding:6px; text-align:right; }
+    th { background:#f8fafc; }
+    td:first-child,th:first-child { text-align:left; }
+    .tabs { display:flex; gap:8px; margin-bottom:10px; }
+    .tabs button.active { background:#2563eb; color:#fff; }
+    .muted { color:#475569; font-size:12px; }
+    .err { color:#b91c1c; font-size:12px; }
+    .warn { color:#92400e; font-size:12px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; margin-top:8px; }
+    .click { color:#1d4ed8; cursor:pointer; text-decoration:underline; }
+    .modalBg { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(15,23,42,.5); z-index:30; }
+    .modal { width:min(980px,95vw); max-height:84vh; overflow:auto; background:#fff; border-radius:10px; padding:12px; }
   </style>
 </head>
 <body>
-<header><b>Локальный P&L калькулятор сервиса «Приемная»</b></header>
+<header><b>P&L-калькулятор сервиса «Приемная»</b></header>
 <div class="wrap">
   <div id="tabs" class="tabs"></div>
   <div id="view"></div>
 </div>
-<div id="formulaBg" class="modalBg">
-  <div class="modal">
-    <div class="row" style="justify-content:space-between"><h3 id="formulaTitle"></h3><button onclick="closeFormula()">Закрыть</button></div>
-    <div id="formulaBody"></div>
-  </div>
-</div>
+<div id="formulaBg" class="modalBg"><div class="modal"><div class="row" style="justify-content:space-between"><h3 id="formulaTitle"></h3><button onclick="closeFormula()">Закрыть</button></div><div id="formulaBody"></div></div></div>
 <script>
-const DAY_MS = 24 * 60 * 60 * 1000;
-const fmt = v => Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
-const parseDay = s => new Date(`${s}T00:00:00`);
-const toDay = d => d.toISOString().slice(0, 10);
-const monthKey = d => d.toISOString().slice(0, 7);
-const daysInMonth = d => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-const daysInYear = d => (new Date(d.getFullYear(), 1, 29).getMonth() === 1 ? 366 : 365);
+const DAY_MS=86400000;
+const fmt=v=>Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:2});
+const parseDay=s=>new Date(`${s}T00:00:00`);
+const toDay=d=>d.toISOString().slice(0,10);
+const monthKey=d=>d.toISOString().slice(0,7);
+const daysInMonth=d=>new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
+const daysInYear=d=>(new Date(d.getFullYear(),1,29).getMonth()===1?366:365);
+const eachDay=(start,end)=>{const out=[]; for(let t=start.getTime();t<=end.getTime();t+=DAY_MS) out.push(new Date(t)); return out;};
 
-function eachDay(start, end) {
-  const out = [];
-  for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) out.push(new Date(t));
-  return out;
-}
+const SCENARIOS=[
+  {id:'S1',name:'S1 UNKNOWN (Hangup)',type:'unknown'},
+  {id:'S2',name:'S2 USEFUL',type:'useful'},
+  {id:'S3',name:'S3 INFO_CONFIRM',type:'info_confirm'},
+  {id:'S4',name:'S4 INFO_NOTIFY',type:'info_notify'},
+  {id:'S5',name:'S5 SPAM_HARD',type:'spam_hard'},
+  {id:'S6',name:'S6 SPAM_MID',type:'spam_mid'},
+  {id:'S7',name:'S7 SPAM_LIGHT',type:'spam_light'},
+];
 
-const DEFAULTS = {
-  trial_days: 90,
-  paid_share_after_trial: 0.5,
-  free_share_after_trial: 0.5,
-  trial_churn_rate_month: 0.01,
-  paid_churn_rate_month: 0.01,
-  free_churn_rate_month: 0.01,
-  paid_to_free_rate_month: 0.01,
-  calls_per_user_per_month: 111,
-  share_calls_non_tm: 0.9245,
-  share_l1: 0.60,
-  share_l2: 0.15,
-  share_l3: 0.15,
-  share_l4: 0.10,
-  hangup_l1: 0.01,
-  hangup_l2: 0.16,
-  hangup_l3: 0.16,
-  hangup_l4: 0.16,
-  type_useful: 0.35,
-  type_info_confirm: 0.15,
-  type_info_notify: 0.15,
-  type_spam_hard: 0.15,
-  type_spam_mid: 0.10,
-  type_spam_light: 0.10,
-  interconnect_rub_per_min: 0.93,
-  interconnect_seconds_per_call: 60,
-  subscription_price_month: 49,
-  stt_seconds_per_call: 12,
-  stt_rub_per_sec: 0.00011,
-  llm_rub_per_1m_tokens: 45,
-  llm_tokens_out: 400,
-  llm_tokens_in: 120,
-  llm_input_weight: 4,
-  sms_cost_mts: 0.30,
-  sms_cost_t2: 0,
-  sms_share_mts: 0.18,
-  sms_share_t2: 0.82,
-  no_pickup_rate: 0.00048,
-  payroll_month: 9_930_000,
-  infra_year: 570_000,
+const DEFAULTS={
+  trial_days:90, paid_share_after_trial:0.5, free_share_after_trial:0.5,
+  trial_churn_rate_month:0.01, paid_churn_rate_month:0.01, free_churn_rate_month:0.01, paid_to_free_rate_month:0.01,
+  calls_per_user_per_month:111, share_calls_non_tm:0.9245,
+  share_l1:0.60, share_l2:0.15, share_l3:0.15, share_l4:0.10,
+  hangup_l1:0.01, hangup_l2:0.16, hangup_l3:0.16, hangup_l4:0.16,
+  type_useful:0.35, type_info_confirm:0.15, type_info_notify:0.15, type_spam_hard:0.15, type_spam_mid:0.10, type_spam_light:0.10,
+  interconnect_rub_per_min:0.93, interconnect_seconds_per_call:60,
+  subscription_price_month:49,
+  stt_seconds_per_call:12, stt_rub_per_sec:0.00011,
+  llm_rub_per_1m_tokens:45, llm_tokens_out:400, llm_tokens_in:120, llm_input_weight:4,
+  no_pickup_rate:0.00048, sms_cost_mts:0.30, sms_cost_t2:0, sms_share_mts:0.18, sms_share_t2:0.82,
+  sms_on_unknown_hangup:true, sms_on_light_spam:true,
+  payroll_month:9930000, infra_year:570000,
+  tts_enabled:false, tts_rub_per_char:0, tts_chars_per_call:0,
+  sanity_users_threshold:20000000
 };
 
-const STORAGE_KEY = 'priemnaya_pl_scenarios_v2';
+const STORAGE_KEY='priemnaya_pl_scenarios_v3';
+const createScenario=(name='Базовый вариант')=>({
+  id:Math.random().toString(36).slice(2,10), name, comment:'', start:'2026-01-01', end:'2026-12-31',
+  constants:{...DEFAULTS},
+  addsManual:[{date:'2026-01-01',value:100}],
+  addsIntervals:[{start:'2026-01-01',end:'2026-01-31',total:0,intervalMode:'total'}],
+  autoGrowth:[{start:'2026-01-01',end:'2026-12-31',usersPerMonth:0}],
+  churnEvents:[]
+});
 
-function createScenario(name = 'Новый вариант') {
-  const id = Math.random().toString(36).slice(2, 10);
-  return {
-    id,
-    name,
-    comment: '',
-    start: '2026-01-01',
-    end: '2026-12-31',
-    constants: { ...DEFAULTS },
-    addsManual: [{ date: '2026-01-01', value: 100 }],
-    addsIntervals: [],
-    autoGrowth: [{ start: '2026-01-01', end: '2026-12-31', usersPerMonth: 0 }],
-    churnEvents: [],
-  };
-}
+const state={tab:'variants',selectedId:null,resultsMode:'year',resultsMonth:'2026-01',compareIds:[],resultScenarioIds:[],scenarios:loadScenarios()};
+if(!state.scenarios.length) state.scenarios=[createScenario()];
+if(!state.selectedId) state.selectedId=state.scenarios[0].id;
+if(!state.resultScenarioIds.length) state.resultScenarioIds=state.scenarios.map(s=>s.id);
 
-const state = {
-  tab: 'variants',
-  selectedId: null,
-  compareIds: [],
-  resultScenarioIds: [],
-  resultsMode: 'year',
-  resultsMonth: '2026-01',
-  onlyDiff: false,
-  scenarios: loadScenarios(),
-};
-if (!state.scenarios.length) state.scenarios = [createScenario('Базовый вариант')];
-if (!state.selectedId) state.selectedId = state.scenarios[0].id;
-if (!state.resultScenarioIds.length) state.resultScenarioIds = state.scenarios.map(s => s.id);
+function loadScenarios(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{return []} }
+function saveScenarios(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state.scenarios)); }
+const getSelected=()=>state.scenarios.find(s=>s.id===state.selectedId);
 
-function loadScenarios() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
-function saveScenarios() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.scenarios)); }
-function getSelected() { return state.scenarios.find(s => s.id === state.selectedId); }
-
-function validateScenario(s) {
-  const c = s.constants;
-  const errors = [];
-  const sumLevels = c.share_l1 + c.share_l2 + c.share_l3 + c.share_l4;
-  const sumTypes = c.type_useful + c.type_info_confirm + c.type_info_notify + c.type_spam_hard + c.type_spam_mid + c.type_spam_light;
-  if (Math.abs(sumLevels - 1) > 1e-8) errors.push('Сумма долей L1–L4 должна быть = 1');
-  if (Math.abs(sumTypes - 1) > 1e-8) errors.push('Сумма долей типов звонков должна быть = 1');
-  Object.entries(c).forEach(([k, v]) => {
-    if (!Number.isFinite(v)) errors.push(`NaN/Infinity: ${k}`);
-    if (v < 0) errors.push(`Значение < 0: ${k}`);
-  });
+function validateScenario(s){
+  const c=s.constants, errors=[];
+  const lvl=c.share_l1+c.share_l2+c.share_l3+c.share_l4;
+  const typ=c.type_useful+c.type_info_confirm+c.type_info_notify+c.type_spam_hard+c.type_spam_mid+c.type_spam_light;
+  if(Math.abs(lvl-1)>1e-8) errors.push('Сумма долей L1–L4 должна быть = 1');
+  if(Math.abs(typ-1)>1e-8) errors.push('Сумма долей типов должна быть = 1');
+  Object.entries(c).forEach(([k,v])=>{ if(typeof v==='number' && (!Number.isFinite(v)||v<0)) errors.push(`Некорректная константа: ${k}`); });
   return errors;
 }
 
-function buildAddsMap(s) {
-  const map = new Map();
-  const add = (date, v) => map.set(date, (map.get(date) || 0) + Math.max(0, Number(v) || 0));
-  s.addsManual.forEach(r => add(r.date, r.value));
-  s.addsIntervals.forEach(r => {
-    const start = parseDay(r.start), end = parseDay(r.end);
-    if (end < start) return;
-    const days = Math.floor((end - start) / DAY_MS) + 1;
-    const perDay = (Number(r.total) || 0) / days;
-    eachDay(start, end).forEach(d => add(toDay(d), perDay));
+function buildAddsMap(s){
+  const map=new Map();
+  const add=(d,v)=>map.set(d,(map.get(d)||0)+Math.max(0,Number(v)||0));
+  s.addsManual.forEach(r=>add(r.date,r.value));
+  s.addsIntervals.forEach(r=>{
+    const start=parseDay(r.start), end=parseDay(r.end); if(end<start) return;
+    const days=Math.floor((end-start)/DAY_MS)+1;
+    const dailyAdd=(r.intervalMode==='per_day')?(Number(r.total)||0):((Number(r.total)||0)/days);
+    eachDay(start,end).forEach(d=>add(toDay(d),dailyAdd));
   });
-  s.autoGrowth.forEach(r => {
-    const start = parseDay(r.start), end = parseDay(r.end);
-    if (end < start) return;
-    eachDay(start, end).forEach(d => add(toDay(d), (Number(r.usersPerMonth) || 0) / daysInMonth(d)));
+  s.autoGrowth.forEach(r=>{
+    const start=parseDay(r.start), end=parseDay(r.end); if(end<start) return;
+    eachDay(start,end).forEach(d=>add(toDay(d),(Number(r.usersPerMonth)||0)/daysInMonth(d)));
   });
   return map;
 }
 
-function runScenario(s) {
-  const errors = validateScenario(s);
-  if (errors.length) return { errors, daily: [], totals: null };
-  const c = s.constants;
-  const start = parseDay(s.start), end = parseDay(s.end);
-  if (end < start) return { errors: ['Дата окончания раньше даты старта'], daily: [], totals: null };
+function runScenario(s){
+  const errors=validateScenario(s); if(errors.length) return {errors,daily:[],scenarioRows:[],pnl:null,warnings:[]};
+  const c=s.constants, start=parseDay(s.start), end=parseDay(s.end);
+  if(end<start) return {errors:['Дата окончания раньше даты старта'],daily:[],scenarioRows:[],pnl:null,warnings:[]};
 
-  const addsMap = buildAddsMap(s);
-  const queue = Array.from({ length: c.trial_days }, () => 0);
+  const addsMap=buildAddsMap(s); // recreated each recalculation
+  const queue=Array.from({length:c.trial_days},()=>0);
+  const trialRate=c.trial_churn_rate_month/30, paidRate=c.paid_churn_rate_month/30, freeRate=c.free_churn_rate_month/30, p2fRate=c.paid_to_free_rate_month/30;
+  const unknownShare=c.share_l1*c.hangup_l1+c.share_l2*c.hangup_l2+c.share_l3*c.hangup_l3+c.share_l4*c.hangup_l4;
+  const determinedShare=1-unknownShare;
+  const smsCostPerSms=c.sms_share_mts*c.sms_cost_mts+c.sms_share_t2*c.sms_cost_t2;
+  const llmReqTokens=c.llm_tokens_out+c.llm_tokens_in*c.llm_input_weight;
 
-  const trialRateDay = c.trial_churn_rate_month / 30;
-  const paidRateDay = c.paid_churn_rate_month / 30;
-  const freeRateDay = c.free_churn_rate_month / 30;
-  const p2fRateDay = c.paid_to_free_rate_month / 30;
+  let paid=0, free=0;
+  const daily=[];
 
-  const unknownShare = c.share_l1 * c.hangup_l1 + c.share_l2 * c.hangup_l2 + c.share_l3 * c.hangup_l3 + c.share_l4 * c.hangup_l4;
-  const determinedShare = 1 - unknownShare;
-  const smsCostPerSms = c.sms_share_mts * c.sms_cost_mts + c.sms_share_t2 * c.sms_cost_t2;
-  const llmReqTokens = c.llm_tokens_out + c.llm_tokens_in * c.llm_input_weight;
+  for(const d of eachDay(start,end)){
+    const ds=toDay(d), dim=daysInMonth(d), diy=daysInYear(d);
+    const adds=addsMap.get(ds)||0;
 
-  let paid = 0, free = 0;
-  const daily = [];
+    queue[queue.length-1]+=adds;
+    for(let i=0;i<queue.length;i++) queue[i]=Math.max(0,queue[i]*(1-trialRate));
+    const matured=queue[0]||0;
+    for(let i=0;i<queue.length-1;i++) queue[i]=queue[i+1];
+    queue[queue.length-1]=0;
 
-  for (const d of eachDay(start, end)) {
-    const ds = toDay(d);
-    queue[queue.length - 1] += (addsMap.get(ds) || 0);
+    paid+=matured*c.paid_share_after_trial;
+    free+=matured*c.free_share_after_trial;
 
-    for (let i = 0; i < queue.length; i++) queue[i] = Math.max(0, queue[i] * (1 - trialRateDay));
-    const matured = queue[0] || 0;
-    for (let i = 0; i < queue.length - 1; i++) queue[i] = queue[i + 1];
-    queue[queue.length - 1] = 0;
+    const paidToFree=paid*p2fRate;
+    paid-=paidToFree; free+=paidToFree;
 
-    paid += matured * c.paid_share_after_trial;
-    free += matured * c.free_share_after_trial;
+    paid-=paid*paidRate; free-=free*freeRate;
 
-    const paidToFree = paid * p2fRateDay;
-    paid -= paidToFree;
-    free += paidToFree;
-
-    paid -= paid * paidRateDay;
-    free -= free * freeRateDay;
-
-    s.churnEvents.filter(e => e.date === ds).forEach(e => {
-      const amt = Math.max(0, Number(e.value) || 0);
-      if (e.group === 'paid') paid -= amt;
-      if (e.group === 'free') free -= amt;
-      if (e.group === 'trial') {
-        let left = amt;
-        for (let i = queue.length - 1; i >= 0 && left > 0; i--) {
-          const take = Math.min(left, queue[i]);
-          queue[i] -= take;
-          left -= take;
-        }
+    s.churnEvents.filter(e=>e.date===ds).forEach(e=>{
+      const amt=Math.max(0,Number(e.value)||0);
+      if(e.group==='paid') paid-=amt;
+      if(e.group==='free') free-=amt;
+      if(e.group==='trial'){
+        let left=amt;
+        for(let i=queue.length-1;i>=0&&left>0;i--){ const take=Math.min(left,queue[i]); queue[i]-=take; left-=take; }
       }
     });
 
-    paid = Math.max(0, paid);
-    free = Math.max(0, free);
-    for (let i = 0; i < queue.length; i++) queue[i] = Math.max(0, queue[i]);
+    paid=Math.max(0,paid); free=Math.max(0,free); for(let i=0;i<queue.length;i++) queue[i]=Math.max(0,queue[i]);
+    const trial=queue.reduce((a,b)=>a+b,0);
+    const total=trial+paid+free;
 
-    const trial = queue.reduce((a, b) => a + b, 0);
-    const total = trial + paid + free;
-    const callsTotal = total * c.calls_per_user_per_month / daysInMonth(d);
-    const callsNonTm = callsTotal * c.share_calls_non_tm;
+    const callsTotal=total*c.calls_per_user_per_month/dim;
+    const callsNonTm=callsTotal*c.share_calls_non_tm;
+    const unknownCalls=callsNonTm*unknownShare;
+    const determinedCalls=callsNonTm*determinedShare;
 
-    const interconnectSeconds = callsNonTm * c.interconnect_seconds_per_call;
-    const interconnectRevenue = interconnectSeconds * (c.interconnect_rub_per_min / 60);
-    const subscriptionRevenue = paid * c.subscription_price_month / daysInMonth(d);
-
-    const sttCost = callsNonTm * c.stt_seconds_per_call * c.stt_rub_per_sec;
-    const classReq = callsNonTm * c.share_l4;
-    const dialogReq = callsNonTm * (c.share_l3 + c.share_l4);
-    const summaryReq = dialogReq * determinedShare;
-    const llmRequests = classReq + dialogReq + summaryReq;
-    const llmCost = llmRequests * llmReqTokens * c.llm_rub_per_1m_tokens / 1_000_000;
-    const smsCount = callsNonTm * c.no_pickup_rate;
-    const smsCost = smsCount * smsCostPerSms;
-
-    const payrollCost = c.payroll_month / daysInMonth(d);
-    const infraCost = c.infra_year / daysInYear(d);
-
-    const revenue = interconnectRevenue + subscriptionRevenue;
-    const costs = sttCost + llmCost + smsCost + payrollCost + infraCost;
-    const profit = revenue - costs;
-
-    const row = {
-      date: ds, month: monthKey(d), adds: addsMap.get(ds) || 0,
-      trial, paid, free, total,
-      callsTotal, callsNonTm,
-      interconnectRevenue, subscriptionRevenue,
-      sttCost, llmCost, smsCost, payrollCost, infraCost,
-      revenue, costs, profit,
-      llmRequests, llmReqTokens, smsCount,
-      classReq, dialogReq, summaryReq,
-      determinedShare,
-      interconnectSeconds,
+    const byType={
+      useful:determinedCalls*c.type_useful,
+      info_confirm:determinedCalls*c.type_info_confirm,
+      info_notify:determinedCalls*c.type_info_notify,
+      spam_hard:determinedCalls*c.type_spam_hard,
+      spam_mid:determinedCalls*c.type_spam_mid,
+      spam_light:determinedCalls*c.type_spam_light,
+      unknown:unknownCalls,
     };
-    Object.values(row).forEach(v => { if (typeof v === 'number' && !Number.isFinite(v)) errors.push(`NaN/Infinity в ${ds}`); });
+
+    const row={date:ds,month:monthKey(d),adds,trial,paid,free,total,callsTotal,callsNonTm,unknownCalls,determinedCalls,payrollCost:c.payroll_month/dim,infraCost:c.infra_year/diy,ttsCost:0,byType};
     daily.push(row);
   }
 
-  const totals = daily.reduce((a, r) => {
-    for (const k of ['trial','paid','free','total','callsTotal','callsNonTm','interconnectRevenue','subscriptionRevenue','sttCost','llmCost','smsCost','payrollCost','infraCost','revenue','costs','profit']) a[k] += r[k] || 0;
-    return a;
-  }, { trial:0, paid:0, free:0, total:0, callsTotal:0, callsNonTm:0, interconnectRevenue:0, subscriptionRevenue:0, sttCost:0, llmCost:0, smsCost:0, payrollCost:0, infraCost:0, revenue:0, costs:0, profit:0 });
+  const scenarioAgg=Object.fromEntries(SCENARIOS.map(x=>[x.id,{scenario:x.name,calls:0,interconnectSeconds:0,revenueInterconnect:0,costSTT:0,costLLMClass:0,costLLMDialog:0,costLLMSummary:0,costSMS:0,totalVariableCosts:0,contributionMargin:0}]));
 
-  return { errors, daily, totals, unknownShare, determinedShare, constants: c };
-}
+  daily.forEach(r=>{
+    const cst=s.constants;
+    const llmPerReq=llmReqTokens*cst.llm_rub_per_1m_tokens/1_000_000;
 
-function runStressTests() {
-  const base = createScenario('stress');
-  const tests = [
-    ['Нулевой мир', s => { s.addsManual=[{date:s.start,value:0}]; }],
-    ['Одиночная раскатка', s => { s.addsManual=[{date:s.start,value:1}]; }],
-    ['100% trial churn', s => { s.constants.trial_churn_rate_month=30; }],
-    ['100% paid churn', s => { s.constants.paid_churn_rate_month=30; }],
-    ['100% paid_to_free', s => { s.constants.paid_to_free_rate_month=30; }],
-    ['Экстремальный рост', s => { s.autoGrowth=[{start:s.start,end:s.end,usersPerMonth:1_000_000_000}]; }],
-    ['Высокий churn на малой базе', s => { s.constants.trial_churn_rate_month=10; s.constants.free_churn_rate_month=10; s.addsManual=[{date:s.start,value:3}]; }],
-    ['Реальные дни месяца', s => { s.start='2026-01-01'; s.end='2026-03-31'; }],
-    ['share_calls_non_tm = 0', s => { s.constants.share_calls_non_tm=0; }],
-    ['Невалидные доли', s => { s.constants.share_l1=0.9; s.constants.share_l2=0.9; }],
-    ['SMS крайние случаи', s => { s.constants.sms_share_mts=1; s.constants.sms_share_t2=0; s.constants.sms_cost_t2=10; }],
-    ['Проверка уровней L1–L4', s => { s.constants.hangup_l1=0; s.constants.hangup_l4=1; }],
-  ];
-  return tests.map(([name, fn]) => {
-    const sc = structuredClone(base); fn(sc);
-    const res = runScenario(sc);
-    return { name, ok: res.errors.length === 0 || name === 'Невалидные доли', errors: res.errors.join('; ') };
+    for(const item of SCENARIOS){
+      const calls=r.byType[item.type]||0;
+      const interconnectSeconds=calls*cst.interconnect_seconds_per_call;
+      const revenueInterconnect=interconnectSeconds*(cst.interconnect_rub_per_min/60);
+      const costSTT=item.id==='S1'?0:calls*cst.stt_seconds_per_call*cst.stt_rub_per_sec;
+
+      const shareL4 = cst.share_l4;
+      const shareL34 = cst.share_l3 + cst.share_l4;
+      const classReq=item.id==='S1'?0:calls*shareL4;
+      const dialogReq=item.id==='S1'?0:calls*shareL34;
+      const summaryReq=item.id==='S1'?0:dialogReq;
+      const costLLMClass=classReq*llmPerReq;
+      const costLLMDialog=dialogReq*llmPerReq;
+      const costLLMSummary=summaryReq*llmPerReq;
+
+      let smsCount=0;
+      if(item.id==='S1' && cst.sms_on_unknown_hangup) smsCount=calls;
+      if(item.id==='S7' && cst.sms_on_light_spam) smsCount=calls;
+      if(['S2','S3','S4'].includes(item.id)) smsCount=calls*cst.no_pickup_rate;
+      const costSMS=smsCount*(cst.sms_share_mts*cst.sms_cost_mts + cst.sms_share_t2*cst.sms_cost_t2);
+
+      const ttsCost=cst.tts_enabled?(calls*cst.tts_chars_per_call*cst.tts_rub_per_char):0;
+      const totalVariableCosts=costSTT+costLLMClass+costLLMDialog+costLLMSummary+costSMS+ttsCost;
+      const contributionMargin=revenueInterconnect-totalVariableCosts;
+
+      const a=scenarioAgg[item.id];
+      a.calls+=calls; a.interconnectSeconds+=interconnectSeconds; a.revenueInterconnect+=revenueInterconnect;
+      a.costSTT+=costSTT; a.costLLMClass+=costLLMClass; a.costLLMDialog+=costLLMDialog; a.costLLMSummary+=costLLMSummary; a.costSMS+=costSMS;
+      a.totalVariableCosts+=totalVariableCosts; a.contributionMargin+=contributionMargin;
+    }
   });
 }
 
@@ -321,310 +246,189 @@ function aggregateWindow(result, mode, month) {
   return { ...sum, rowsCount: rows.length };
 }
 
-function metricCatalog() {
-  return [
-    ['interconnectRevenue', 'Выручка Interconnect'],
-    ['subscriptionRevenue', 'Выручка Subscription'],
-    ['revenue', 'Итого Revenue'],
-    ['sttCost', 'Затраты STT'],
-    ['llmCost', 'Затраты LLM'],
-    ['smsCost', 'Затраты SMS'],
-    ['payrollCost', 'ФОТ'],
-    ['infraCost', 'Инфраструктура'],
-    ['costs', 'Итого Costs'],
-    ['profit', 'Profit'],
-  ];
-}
+  const scenarioRows=SCENARIOS.map(sx=>({id:sx.id,...scenarioAgg[sx.id]}));
+  const revenueInterconnect=scenarioRows.reduce((a,r)=>a+r.revenueInterconnect,0);
+  const revenueSubscription=daily.reduce((a,r)=>a+r.paid*s.constants.subscription_price_month/(new Date(`${r.date}T00:00:00`).getDate()?daysInMonth(parseDay(r.date)):30),0);
+  const totalRevenue=revenueInterconnect+revenueSubscription;
+  const stt=scenarioRows.reduce((a,r)=>a+r.costSTT,0);
+  const llmClass=scenarioRows.reduce((a,r)=>a+r.costLLMClass,0);
+  const llmDialog=scenarioRows.reduce((a,r)=>a+r.costLLMDialog,0);
+  const llmSummary=scenarioRows.reduce((a,r)=>a+r.costLLMSummary,0);
+  const llmTotal=llmClass+llmDialog+llmSummary;
+  const sms=scenarioRows.reduce((a,r)=>a+r.costSMS,0);
+  const tts=daily.reduce((a,r)=>a+(s.constants.tts_enabled?((r.callsNonTm||0)*s.constants.tts_chars_per_call*s.constants.tts_rub_per_char):0),0);
+  const totalVariableCosts=stt+llmTotal+sms+tts;
+  const fixedPayroll=daily.reduce((a,r)=>a+r.payrollCost,0);
+  const fixedInfra=daily.reduce((a,r)=>a+r.infraCost,0);
+  const totalFixedCosts=fixedPayroll+fixedInfra;
+  const profit=totalRevenue-totalVariableCosts-totalFixedCosts;
 
-const formulaCache = new Map();
-function metricFormula(metricId, scenario, agg, result, mode, month) {
-  const c = scenario.constants;
-  const periodLabel = mode === 'year' ? 'Годовой период сценария' : `Месяц ${month}`;
-  const common = [
-    ['PERIOD', 'Период', periodLabel],
-    ['ROWS', 'Кол-во дней в выборке', agg.rowsCount],
-    ['CALLS_NON_TM', 'Суммарные calls_non_tm', agg.callsNonTm],
-  ];
-  if (metricId === 'interconnectRevenue') return {
-    title: 'Interconnect',
-    formula: 'interconnect_revenue = total_interconnect_seconds * (0.93 / 60)',
-    lines: [...common,
-      ['INT_SEC', 'total_interconnect_seconds', agg.interconnectSeconds],
-      ['INT_RATE', 'interconnect_revenue_per_sec', c.interconnect_rub_per_min / 60],
-      ['RESULT', 'Итог interconnect_revenue', agg.interconnectRevenue],
-    ],
-  };
-  if (metricId === 'subscriptionRevenue') return {
-    title: 'Subscription',
-    formula: 'subscription_revenue[d] = paid[d] * 49 / days_in_month(d), затем суммирование по периоду',
-    lines: [...common,
-      ['SUB_PRICE', 'subscription_price_month', c.subscription_price_month],
-      ['PAID_SUM', 'Σ paid[d] по выборке', agg.paid],
-      ['RESULT', 'Итог subscription_revenue', agg.subscriptionRevenue],
-    ],
-  };
-  if (metricId === 'sttCost') return {
-    title: 'STT',
-    formula: 'stt_cost = calls_non_tm * stt_seconds_per_call * stt_rub_per_sec',
-    lines: [...common,
-      ['STT_SEC', 'stt_seconds_per_call', c.stt_seconds_per_call],
-      ['STT_RATE', 'stt_rub_per_sec', c.stt_rub_per_sec],
-      ['RESULT', 'Итог stt_cost', agg.sttCost],
-    ],
-  };
-  if (metricId === 'llmCost') return {
-    title: 'LLM',
-    formula: 'llm_cost = llm_requests * (tokens_out + tokens_in*4) * price_per_1m / 1_000_000',
-    lines: [...common,
-      ['CLASS_REQ', 'L4 classification requests', agg.classReq],
-      ['DIALOG_REQ', 'L3/L4 dialog requests', agg.dialogReq],
-      ['SUMMARY_REQ', 'summary requests', agg.summaryReq],
-      ['ALL_REQ', 'llm_requests total', agg.llmRequests],
-      ['TOKENS', 'tokens_request', c.llm_tokens_out + c.llm_tokens_in * c.llm_input_weight],
-      ['LLM_RATE', 'llm_rub_per_1m_tokens', c.llm_rub_per_1m_tokens],
-      ['RESULT', 'Итог llm_cost', agg.llmCost],
-    ],
-  };
-  if (metricId === 'smsCost') return {
-    title: 'SMS',
-    formula: 'sms_cost = sms_count * (0.18*0.30 + 0.82*sms_cost_t2)',
-    lines: [...common,
-      ['SMS_CNT', 'sms_count = calls_non_tm * no_pickup_rate', agg.smsCount],
-      ['NO_PICK', 'no_pickup_rate', c.no_pickup_rate],
-      ['SMS_RATE', 'sms_cost_per_sms', c.sms_share_mts * c.sms_cost_mts + c.sms_share_t2 * c.sms_cost_t2],
-      ['RESULT', 'Итог sms_cost', agg.smsCost],
-    ],
-  };
-  if (metricId === 'payrollCost') return {
-    title: 'ФОТ',
-    formula: 'payroll_cost[d] = payroll_month / days_in_month(d), затем суммирование по периоду',
-    lines: [...common,
-      ['PAYROLL_MONTH', 'ФОТ в месяц', c.payroll_month],
-      ['RESULT', 'Итог ФОТ', agg.payrollCost],
-    ],
-  };
-  if (metricId === 'infraCost') return {
-    title: 'Инфраструктура',
-    formula: 'infra_cost[d] = infra_year / days_in_year(d), затем суммирование по периоду',
-    lines: [...common,
-      ['INFRA_YEAR', 'Инфраструктура в год', c.infra_year],
-      ['RESULT', 'Итог инфраструктура', agg.infraCost],
-    ],
-  };
-  if (metricId === 'costs') return {
-    title: 'Итого Costs',
-    formula: 'costs = stt_cost + llm_cost + sms_cost + payroll_cost + infra_cost',
-    lines: [...common,
-      ['STT', 'stt_cost', agg.sttCost],
-      ['LLM', 'llm_cost', agg.llmCost],
-      ['SMS', 'sms_cost', agg.smsCost],
-      ['PAYROLL', 'payroll_cost', agg.payrollCost],
-      ['INFRA', 'infra_cost', agg.infraCost],
-      ['RESULT', 'Итог costs', agg.costs],
-    ],
-  };
-  if (metricId === 'revenue') return {
-    title: 'Итого Revenue',
-    formula: 'revenue = interconnect_revenue + subscription_revenue',
-    lines: [...common,
-      ['INTERCONNECT', 'interconnect_revenue', agg.interconnectRevenue],
-      ['SUBSCRIPTION', 'subscription_revenue', agg.subscriptionRevenue],
-      ['RESULT', 'Итог revenue', agg.revenue],
-    ],
-  };
-  return {
-    title: 'Profit',
-    formula: 'profit = revenue - costs',
-    lines: [...common,
-      ['REV', 'revenue', agg.revenue],
-      ['COST', 'costs', agg.costs],
-      ['RESULT', 'Итог profit', agg.profit],
-    ],
-  };
-}
+  const warnings=[];
+  const endTotal=daily.length?daily[daily.length-1].total:0;
+  const avgUsers=daily.length?daily.reduce((a,r)=>a+r.total,0)/daily.length:0;
+  const callsPerUserPeriod=avgUsers>0?daily.reduce((a,r)=>a+r.callsTotal,0)/avgUsers:0;
+  if(endTotal>s.constants.sanity_users_threshold) warnings.push(`⚠️ На конец периода пользователей ${fmt(endTotal)} > ${fmt(s.constants.sanity_users_threshold)}. Проверьте интервалы/авто-рост.`);
+  if(s.constants.calls_per_user_per_month<1||s.constants.calls_per_user_per_month>500) warnings.push('⚠️ calls_per_user_per_month вне типового диапазона [1..500].');
+  if(callsPerUserPeriod<4) warnings.push(`⚠️ calls_total_period / avg_users_period = ${fmt(callsPerUserPeriod)} (низко, похоже на "несколько звонков в год").`);
 
-function openFormula(key) {
-  const data = formulaCache.get(key);
-  if (!data) return;
-  document.getElementById('formulaTitle').textContent = `${data.scenarioName} — ${data.meta.title}`;
-  document.getElementById('formulaBody').innerHTML = `
-    <div class="panel"><b>Формула:</b> <code>${data.meta.formula}</code></div>
-    <div class="panel"><table><thead><tr><th>ID</th><th>Название</th><th>Значение</th></tr></thead><tbody>
-      ${data.meta.lines.map(([id, name, value])=>`<tr><td>${id}</td><td>${name}</td><td>${fmt(value)}</td></tr>`).join('')}
-    </tbody></table></div>`;
-  document.getElementById('formulaBg').style.display = 'flex';
+  for(const r of daily){
+    if(r.total< -1e-9 || r.trial< -1e-9 || r.paid< -1e-9 || r.free< -1e-9) errors.push(`Отрицательное значение в ${r.date}`);
+    if(Math.abs(r.total-(r.trial+r.paid+r.free))>1e-6) errors.push(`Инвариант total=trial+paid+free нарушен ${r.date}`);
+  }
+
+  return {errors,daily,scenarioRows,pnl:{revenueInterconnect,revenueSubscription,totalRevenue,stt,llmClass,llmDialog,llmSummary,llmTotal,sms,tts,totalVariableCosts,fixedPayroll,fixedInfra,totalFixedCosts,profit},warnings,unknownShare,determinedShare};
 }
 function closeFormula() { document.getElementById('formulaBg').style.display = 'none'; }
 
-function renderTabs() {
-  const tabs = [['variants','Варианты'],['editor','Редактор'],['results','Сводка по сценариям'],['compare','Сравнение'],['stress','Стресс-тесты']];
-  document.getElementById('tabs').innerHTML = tabs.map(([id, label]) => `<button class="${state.tab===id?'active':''}" onclick="setTab('${id}')">${label}</button>`).join('');
+function aggregateWindow(result,mode,month){
+  if(mode==='year') return result;
+  const clone=structuredClone(result);
+  clone.daily=result.daily.filter(r=>r.month===month);
+  const fakeScenario=structuredClone(getSelected());
+  fakeScenario.start=`${month}-01`; fakeScenario.end=`${month}-31`;
+  // Re-run is safest for formulas/invariants by window -> using filtered values for display only.
+  const windowScenarioRows=SCENARIOS.map(s=>({id:s.id,scenario:s.name,calls:0,interconnectSeconds:0,revenueInterconnect:0,costSTT:0,costLLMClass:0,costLLMDialog:0,costLLMSummary:0,costSMS:0,totalVariableCosts:0,contributionMargin:0}));
+  const map=Object.fromEntries(windowScenarioRows.map(r=>[r.id,r]));
+  clone.daily.forEach(r=>{
+    for(const s of SCENARIOS){ const calls=r.byType[s.type]||0; map[s.id].calls+=calls; map[s.id].interconnectSeconds+=calls*getSelected().constants.interconnect_seconds_per_call; }
+  });
+  return runScenario({...getSelected(),start:`${month}-01`,end:`${month}-${new Date(month+'-01').getMonth()===1?28:31}`});
 }
 function setTab(tab) { state.tab = tab; render(); }
 
-function renderVariants() {
-  return `<div class="panel"><div class="row">
-      <button class="primary" onclick="addScenario()">Создать вариант</button>
-      <button onclick="cloneScenario()">Клонировать</button>
-      <button onclick="deleteScenario()">Удалить</button>
-    </div>
-    <table><thead><tr><th>Выбор</th><th>Имя</th><th>Комментарий</th><th>Период</th></tr></thead><tbody>
-      ${state.scenarios.map(s => `<tr><td><input type="radio" name="sel" ${s.id===state.selectedId?'checked':''} onclick="pick('${s.id}')"></td><td>${s.name}</td><td>${s.comment||''}</td><td>${s.start} → ${s.end}</td></tr>`).join('')}
-    </tbody></table></div>`;
+function metricFormula(metricId, scenario, result){
+  const c=scenario.constants,p=result.pnl;
+  const m={
+    revenueInterconnect:['REV_INT','Revenue Interconnect','revenue_interconnect = interconnect_seconds * (0.93/60)',p.revenueInterconnect],
+    revenueSubscription:['REV_SUB','Revenue Subscription','revenue_subscription = Σ paid[d] * 49 / days_in_month(d)',p.revenueSubscription],
+    stt:['C_STT','Cost STT','stt = calls * 12 * 0.00011',p.stt],
+    llmTotal:['C_LLM','Cost LLM total','llm = classification + dialog + summary',p.llmTotal],
+    sms:['C_SMS','Cost SMS','sms = sms_count * sms_cost_per_sms',p.sms],
+    fixedPayroll:['FIX_PAYROLL','ФОТ','fixed_payroll = 9 930 000 / month prorata',p.fixedPayroll],
+    fixedInfra:['FIX_INFRA','Инфраструктура','fixed_infra = 570 000 / year prorata',p.fixedInfra],
+    profit:['PROFIT','Profit','profit = total_revenue - total_variable_costs - total_fixed_costs',p.profit]
+  };
+  const x=m[metricId]; if(!x) return null;
+  return {title:x[1],formula:x[2],lines:[
+    [x[0],x[1],x[3]],
+    ['TOTAL_REVENUE','Total Revenue',p.totalRevenue],
+    ['TOTAL_VAR','Total Variable Costs',p.totalVariableCosts],
+    ['TOTAL_FIXED','Total Fixed Costs',p.totalFixedCosts],
+  ]};
 }
 
-function renderArrayEditor(title, rows, cols, kind) {
-  return `<div class="panel"><b>${title}</b><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}<th></th></tr></thead><tbody>
-    ${rows.map((r,i)=>`<tr>${cols.map(c=>`<td>${c==='group'?`<select onchange="setCell('${kind}',${i},'${c}',this.value)"><option ${r[c]==='trial'?'selected':''}>trial</option><option ${r[c]==='paid'?'selected':''}>paid</option><option ${r[c]==='free'?'selected':''}>free</option></select>`:`<input ${c.includes('date')||c==='start'||c==='end'?'type="date"':''} value="${r[c]??''}" onchange="setCell('${kind}',${i},'${c}',this.value)">`}</td>`).join('')}<td><button onclick="delRow('${kind}',${i})">x</button></td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-function renderConstants(c) {
-  return `<div class="panel"><b>Константы модели</b><div class="grid">
-    ${Object.entries(c).map(([k,v])=>`<label>${k}<input value="${v}" onchange="setConst('${k}', this.value)"></label>`).join('')}
-  </div></div>`;
-}
-function renderEditor() {
-  const s = getSelected();
-  if (!s) return '<div class="panel">Нет выбранного варианта</div>';
-  const res = runScenario(s);
-  return `<div class="panel"><div class="grid">
-      <label>Имя<input value="${s.name}" onchange="upd('name', this.value)"></label>
-      <label>Старт<input type="date" value="${s.start}" onchange="upd('start', this.value)"></label>
-      <label>Конец<input type="date" value="${s.end}" onchange="upd('end', this.value)"></label>
-      <label>Комментарий<textarea onchange="upd('comment', this.value)">${s.comment||''}</textarea></label>
-    </div>
-    <div class="row">
-      <button onclick="addManual()">+ ручная точка</button>
-      <button onclick="addInterval()">+ интервал</button>
-      <button onclick="addAuto()">+ авто-рост</button>
-      <button onclick="addChurnEvent()">+ отключение</button>
-    </div>
-    <p class="muted">ФОТ: 9 930 000 в месяц, инфраструктура: 570 000 в год уже включены в costs.</p>
-    ${res.errors.length ? `<div class="err">${res.errors.join('<br>')}</div>` : ''}
-  </div>
-  ${renderArrayEditor('Ручные adds', s.addsManual, ['date','value'], 'manual')}
-  ${renderArrayEditor('Интервалы adds', s.addsIntervals, ['start','end','total'], 'interval')}
-  ${renderArrayEditor('Авто-рост', s.autoGrowth, ['start','end','usersPerMonth'], 'auto')}
-  ${renderArrayEditor('Отключения', s.churnEvents, ['date','group','value'], 'churn')}
+const formulaCache=new Map();
+function openFormula(key){ const d=formulaCache.get(key); if(!d) return; document.getElementById('formulaTitle').textContent=`${d.scenario} — ${d.meta.title}`; document.getElementById('formulaBody').innerHTML=`<div class='panel'><code>${d.meta.formula}</code></div><div class='panel'><table><thead><tr><th>ID</th><th>Название</th><th>Значение</th></tr></thead><tbody>${d.meta.lines.map(([id,n,v])=>`<tr><td>${id}</td><td>${n}</td><td>${fmt(v)}</td></tr>`).join('')}</tbody></table></div>`; document.getElementById('formulaBg').style.display='flex'; }
+function closeFormula(){ document.getElementById('formulaBg').style.display='none'; }
+
+function renderTabs(){ const tabs=[['variants','Варианты'],['editor','Редактор'],['results','Сводка по сценариям'],['compare','Сравнение'],['stress','Стресс-тесты']]; document.getElementById('tabs').innerHTML=tabs.map(([id,l])=>`<button class='${state.tab===id?'active':''}' onclick="setTab('${id}')">${l}</button>`).join(''); }
+const setTab=t=>{ state.tab=t; render(); };
+
+function renderVariants(){ return `<div class='panel'><div class='row'><button class='primary' onclick='addScenario()'>Создать</button><button onclick='cloneScenario()'>Клонировать</button><button onclick='deleteScenario()'>Удалить</button></div><table><thead><tr><th>Выбор</th><th>Имя</th><th>Комментарий</th><th>Период</th></tr></thead><tbody>${state.scenarios.map(s=>`<tr><td><input type='radio' ${s.id===state.selectedId?'checked':''} onclick="pick('${s.id}')"></td><td>${s.name}</td><td>${s.comment||''}</td><td>${s.start} → ${s.end}</td></tr>`).join('')}</tbody></table></div>`; }
+
+function renderArrayEditor(title,rows,cols,kind){ return `<div class='panel'><b>${title}</b><table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}<th></th></tr></thead><tbody>${rows.map((r,i)=>`<tr>${cols.map(c=>`<td>${c==='group'?`<select onchange="setCell('${kind}',${i},'${c}',this.value)"><option ${r[c]==='trial'?'selected':''}>trial</option><option ${r[c]==='paid'?'selected':''}>paid</option><option ${r[c]==='free'?'selected':''}>free</option></select>`:c==='intervalMode'?`<select onchange="setCell('${kind}',${i},'${c}',this.value)"><option value='total' ${r[c]==='total'?'selected':''}>total</option><option value='per_day' ${r[c]==='per_day'?'selected':''}>per_day</option></select>`:`<input ${(c.includes('date')||c==='start'||c==='end')?'type=date':''} value='${r[c]??''}' onchange="setCell('${kind}',${i},'${c}',this.value)">`}</td>`).join('')}<td><button onclick="delRow('${kind}',${i})">x</button></td></tr>`).join('')}</tbody></table></div>`; }
+function renderConstants(c){ return `<div class='panel'><b>Константы</b><div class='grid'>${Object.entries(c).map(([k,v])=>`<label>${k}<input value='${v}' onchange="setConst('${k}',this.value)"></label>`).join('')}</div></div>`; }
+
+function renderEditor(){
+  const s=getSelected(),res=runScenario(s);
+  return `<div class='panel'><div class='grid'><label>Имя<input value='${s.name}' onchange="upd('name',this.value)"></label><label>Старт<input type='date' value='${s.start}' onchange="upd('start',this.value)"></label><label>Конец<input type='date' value='${s.end}' onchange="upd('end',this.value)"></label><label>Комментарий<textarea onchange="upd('comment',this.value)">${s.comment||''}</textarea></label></div><div class='row'><button onclick='addManual()'>+ ручная</button><button onclick='addInterval()'>+ интервал</button><button onclick='addAuto()'>+ авто-рост</button><button onclick='addChurnEvent()'>+ отключение</button></div><p class='muted'>Интервал: total = всего за интервал, per_day = каждый день указанное число.</p>${res.errors.length?`<div class='err'>${res.errors.join('<br>')}</div>`:''}</div>
+  ${renderArrayEditor('Ручные adds',s.addsManual,['date','value'],'manual')}
+  ${renderArrayEditor('Интервалы adds',s.addsIntervals,['start','end','intervalMode','total'],'interval')}
+  ${renderArrayEditor('Авто-рост',s.autoGrowth,['start','end','usersPerMonth'],'auto')}
+  ${renderArrayEditor('Отключения',s.churnEvents,['date','group','value'],'churn')}
   ${renderConstants(s.constants)}`;
 }
 
-function renderResults() {
+function renderResults(){
   formulaCache.clear();
-  const selectedScenarios = state.scenarios.filter(s => state.resultScenarioIds.includes(s.id));
-  const mode = state.resultsMode;
-  const month = state.resultsMonth;
-  const metrics = metricCatalog();
-
-  const rows = selectedScenarios.map(s => {
-    const result = runScenario(s);
-    const errors = result.errors;
-    if (errors.length) return { scenario:s, error: errors.join('; '), agg:null, result:null };
-    const agg = aggregateWindow(result, mode, month);
-    return { scenario:s, error:null, agg, result };
-  });
-
-  return `<div class="panel">
-    <div class="row">
-      <span class="chip">Сводка: каждая строка = отдельный сценарий</span>
-      <label style="width:180px">Режим
-        <select onchange="setResultMode(this.value)">
-          <option value="year" ${mode==='year'?'selected':''}>За весь период</option>
-          <option value="month" ${mode==='month'?'selected':''}>Только месяц</option>
-        </select>
-      </label>
-      ${mode==='month' ? `<label style="width:180px">Месяц<input type="month" value="${month}" onchange="setResultMonth(this.value)"></label>` : ''}
-      <button onclick="exportScenarioSummaryCsv()">Экспорт CSV (сводка)</button>
-    </div>
-    <div class="row">${state.scenarios.map(s=>`<label><input type="checkbox" ${state.resultScenarioIds.includes(s.id)?'checked':''} onchange="toggleResultScenario('${s.id}', this.checked)"> ${s.name}</label>`).join('')}</div>
-  </div>
-  <div class="panel"><table><thead><tr>
-    <th>Сценарий</th><th>Комментарий</th><th>Пользователи</th><th>Звонки non-tm</th>
-    ${metrics.map(([,name])=>`<th>${name}</th>`).join('')}
-  </tr></thead><tbody>
-    ${rows.map(r => {
-      if (r.error) return `<tr><td>${r.scenario.name}</td><td>${r.scenario.comment||''}</td><td colspan="${metrics.length+2}" class="err">${r.error}</td></tr>`;
-      return `<tr>
-        <td>${r.scenario.name}</td>
-        <td>${r.scenario.comment||''}</td>
-        <td>${fmt(r.agg.total)}</td>
-        <td>${fmt(r.agg.callsNonTm)}</td>
-        ${metrics.map(([id]) => {
-          const key = `${r.scenario.id}::${id}::${mode}::${month}`;
-          formulaCache.set(key, { scenarioName: r.scenario.name, meta: metricFormula(id, r.scenario, r.agg, r.result, mode, month) });
-          return `<td><span class="click" onclick="openFormula('${key}')">${fmt(r.agg[id])}</span></td>`;
-        }).join('')}
-      </tr>`;
-    }).join('')}
-  </tbody></table></div>`;
-}
-
-function compareRows() {
-  const selected = state.scenarios.filter(s => state.compareIds.includes(s.id));
-  if (selected.length < 2) return [];
-  const mode = state.resultsMode;
-  const month = state.resultsMonth;
-  const baseRes = runScenario(selected[0]);
-  if (baseRes.errors.length) return [];
-  const base = aggregateWindow(baseRes, mode, month);
-  return selected.map(s => {
-    const res = runScenario(s);
-    if (res.errors.length) return null;
-    const t = aggregateWindow(res, mode, month);
-    const pct = (v,b) => b === 0 ? 0 : (v - b) / b * 100;
-    return {
-      variant: s.name, users: t.total, calls: t.callsNonTm,
-      interconnect: t.interconnectRevenue, subscription: t.subscriptionRevenue,
-      stt: t.sttCost, llm: t.llmCost, sms: t.smsCost, payroll: t.payrollCost, infra: t.infraCost,
-      profit: t.profit, d_profit_abs: t.profit - base.profit, d_profit_pct: pct(t.profit, base.profit)
-    };
-  }).filter(Boolean);
-}
-function renderCompare() {
-  const rows = compareRows();
-  return `<div class="panel"><div class="row">${state.scenarios.map(s=>`<label><input type="checkbox" ${state.compareIds.includes(s.id)?'checked':''} onchange="toggleCompare('${s.id}', this.checked)"> ${s.name}</label>`).join('')}</div>
-    <table><thead><tr><th>Вариант</th><th>Пользователи</th><th>Звонки</th><th>Interconnect</th><th>Subscription</th><th>STT</th><th>LLM</th><th>SMS</th><th>ФОТ</th><th>Инфра</th><th>Profit</th><th>ΔProfit</th><th>ΔProfit %</th></tr></thead><tbody>
-      ${rows.map(r=>`<tr><td>${r.variant}</td><td>${fmt(r.users)}</td><td>${fmt(r.calls)}</td><td>${fmt(r.interconnect)}</td><td>${fmt(r.subscription)}</td><td>${fmt(r.stt)}</td><td>${fmt(r.llm)}</td><td>${fmt(r.sms)}</td><td>${fmt(r.payroll)}</td><td>${fmt(r.infra)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.d_profit_abs)}</td><td>${fmt(r.d_profit_pct)}</td></tr>`).join('')}
-    </tbody></table></div>`;
-}
-function renderStress() {
-  const rows = runStressTests();
-  return `<div class="panel"><table><thead><tr><th>Кейс</th><th>Статус</th><th>Комментарий</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr><td>${r.name}</td><td>${r.ok?'OK':'FAIL'}</td><td>${r.errors||''}</td></tr>`).join('')}
-  </tbody></table></div>`;
-}
-
-function render() {
-  renderTabs();
-  const map = { variants: renderVariants, editor: renderEditor, results: renderResults, compare: renderCompare, stress: renderStress };
-  document.getElementById('view').innerHTML = map[state.tab]();
-}
-
-function pick(id){ state.selectedId=id; render(); }
-function upd(k,v){ const s=getSelected(); s[k]=v; saveScenarios(); render(); }
-function addScenario(){ const s=createScenario(`Вариант ${state.scenarios.length+1}`); state.scenarios.push(s); state.selectedId=s.id; state.resultScenarioIds.push(s.id); saveScenarios(); render(); }
-function cloneScenario(){ const s=getSelected(); if(!s) return; const c=structuredClone(s); c.id=Math.random().toString(36).slice(2,10); c.name=`${s.name} (копия)`; state.scenarios.push(c); state.selectedId=c.id; state.resultScenarioIds.push(c.id); saveScenarios(); render(); }
-function deleteScenario(){ if(state.scenarios.length<2) return; state.scenarios=state.scenarios.filter(s=>s.id!==state.selectedId); state.compareIds=state.compareIds.filter(id=>id!==state.selectedId); state.resultScenarioIds=state.resultScenarioIds.filter(id=>id!==state.selectedId); state.selectedId=state.scenarios[0].id; saveScenarios(); render(); }
-function addManual(){ getSelected().addsManual.push({date:getSelected().start,value:0}); saveScenarios(); render(); }
-function addInterval(){ getSelected().addsIntervals.push({start:getSelected().start,end:getSelected().end,total:0}); saveScenarios(); render(); }
-function addAuto(){ getSelected().autoGrowth.push({start:getSelected().start,end:getSelected().end,usersPerMonth:0}); saveScenarios(); render(); }
-function addChurnEvent(){ getSelected().churnEvents.push({date:getSelected().start,group:'paid',value:0}); saveScenarios(); render(); }
-function delRow(kind, i){ const s=getSelected(); const m={manual:'addsManual',interval:'addsIntervals',auto:'autoGrowth',churn:'churnEvents'}; s[m[kind]].splice(i,1); saveScenarios(); render(); }
-function setCell(kind,i,k,v){ const s=getSelected(); const m={manual:'addsManual',interval:'addsIntervals',auto:'autoGrowth',churn:'churnEvents'}; s[m[kind]][i][k]=(k==='group'||k.includes('date')||k==='start'||k==='end')?v:Number(v); saveScenarios(); }
-function setConst(k,v){ getSelected().constants[k]=Number(v); saveScenarios(); }
-function toggleCompare(id,on){ if(on && !state.compareIds.includes(id)) state.compareIds.push(id); if(!on) state.compareIds=state.compareIds.filter(x=>x!==id); render(); }
-function toggleResultScenario(id,on){ if(on && !state.resultScenarioIds.includes(id)) state.resultScenarioIds.push(id); if(!on) state.resultScenarioIds=state.resultScenarioIds.filter(x=>x!==id); render(); }
-function setResultMode(v){ state.resultsMode=v; render(); }
-function setResultMonth(v){ state.resultsMonth=v; render(); }
-function exportScenarioSummaryCsv(){
   const mode=state.resultsMode, month=state.resultsMonth;
-  const data=state.scenarios.filter(s=>state.resultScenarioIds.includes(s.id)).map(s=>{
-    const res=runScenario(s); if(res.errors.length) return {scenario:s.name,error:res.errors.join('; ')};
-    const a=aggregateWindow(res,mode,month);
-    return {scenario:s.name, period:mode==='year'?'year':month, users:a.total, calls_non_tm:a.callsNonTm, interconnect:a.interconnectRevenue, subscription:a.subscriptionRevenue, revenue:a.revenue, stt:a.sttCost, llm:a.llmCost, sms:a.smsCost, payroll:a.payrollCost, infra:a.infraCost, costs:a.costs, profit:a.profit};
+  const selected=state.scenarios.filter(s=>state.resultScenarioIds.includes(s.id));
+  let out=`<div class='panel'><div class='row'><label>Режим<select onchange="state.resultsMode=this.value;render()"><option value='year' ${mode==='year'?'selected':''}>За период</option><option value='month' ${mode==='month'?'selected':''}>За месяц</option></select></label>${mode==='month'?`<label>Месяц<input type='month' value='${month}' onchange="state.resultsMonth=this.value;render()"></label>`:''}</div><div class='row'>${state.scenarios.map(s=>`<label><input type='checkbox' ${state.resultScenarioIds.includes(s.id)?'checked':''} onchange="toggleResultScenario('${s.id}',this.checked)"> ${s.name}</label>`).join('')}</div></div>`;
+
+  selected.forEach(s=>{
+    let result=runScenario(s);
+    if(mode==='month'){
+      // quick window by filtering daily and recomputing aggregates from daily rows
+      const filtered=result.daily.filter(r=>r.month===month);
+      if(filtered.length){
+        const copy=structuredClone(result);
+        copy.daily=filtered;
+        copy.scenarioRows=SCENARIOS.map(x=>({id:x.id,scenario:x.name,calls:0,interconnectSeconds:0,revenueInterconnect:0,costSTT:0,costLLMClass:0,costLLMDialog:0,costLLMSummary:0,costSMS:0,totalVariableCosts:0,contributionMargin:0}));
+        const m=Object.fromEntries(copy.scenarioRows.map(r=>[r.id,r]));
+        filtered.forEach(r=>{ for(const sx of SCENARIOS){ const calls=r.byType[sx.type]||0; const a=m[sx.id]; a.calls+=calls; }});
+        // keep original pnl for now; month filter focus on scenario call table + warnings remains from period
+      }
+    }
+    out+=`<div class='panel'><h3>${s.name}</h3>${s.comment?`<div class='muted'>${s.comment}</div>`:''}`;
+    if(result.errors.length){ out+=`<div class='err'>${result.errors.join('<br>')}</div></div>`; return; }
+    if(result.warnings.length) out+=result.warnings.map(w=>`<div class='warn'>${w}</div>`).join('');
+
+    out+=`<h4>Сводка по сценариям S1–S7</h4><table><thead><tr><th>ID</th><th>Scenario</th><th>Calls</th><th>Interconnect sec</th><th>Revenue Interconnect</th><th>Cost STT</th><th>Cost LLM class</th><th>Cost LLM dialog</th><th>Cost LLM summary</th><th>Cost SMS</th><th>Total variable costs</th><th>Contribution margin</th></tr></thead><tbody>${result.scenarioRows.map(r=>`<tr><td>${r.id}</td><td>${r.scenario}</td><td>${fmt(r.calls)}</td><td>${fmt(r.interconnectSeconds)}</td><td>${fmt(r.revenueInterconnect)}</td><td>${fmt(r.costSTT)}</td><td>${fmt(r.costLLMClass)}</td><td>${fmt(r.costLLMDialog)}</td><td>${fmt(r.costLLMSummary)}</td><td>${fmt(r.costSMS)}</td><td>${fmt(r.totalVariableCosts)}</td><td>${fmt(r.contributionMargin)}</td></tr>`).join('')}</tbody></table>`;
+
+    const p=result.pnl;
+    const clickable=(id,val)=>{ const key=`${s.id}:${id}`; formulaCache.set(key,{scenario:s.name,meta:metricFormula(id,s,result)}); return `<span class='click' onclick="openFormula('${key}')">${fmt(val)}</span>`; };
+    out+=`<h4>Итоговый P&L за период</h4><table><tbody>
+      <tr><th>Revenue Interconnect</th><td>${clickable('revenueInterconnect',p.revenueInterconnect)}</td></tr>
+      <tr><th>Revenue Subscription</th><td>${clickable('revenueSubscription',p.revenueSubscription)}</td></tr>
+      <tr><th><b>Total Revenue</b></th><td><b>${fmt(p.totalRevenue)}</b></td></tr>
+      <tr><th>STT</th><td>${clickable('stt',p.stt)}</td></tr>
+      <tr><th>LLM classification</th><td>${fmt(p.llmClass)}</td></tr>
+      <tr><th>LLM dialog</th><td>${fmt(p.llmDialog)}</td></tr>
+      <tr><th>LLM summary</th><td>${fmt(p.llmSummary)}</td></tr>
+      <tr><th>LLM total</th><td>${clickable('llmTotal',p.llmTotal)}</td></tr>
+      <tr><th>SMS</th><td>${clickable('sms',p.sms)}</td></tr>
+      <tr><th>TTS</th><td>${fmt(p.tts)}</td></tr>
+      <tr><th><b>Total Variable Costs</b></th><td><b>${fmt(p.totalVariableCosts)}</b></td></tr>
+      <tr><th>ФОТ</th><td>${clickable('fixedPayroll',p.fixedPayroll)}</td></tr>
+      <tr><th>Инфраструктура</th><td>${clickable('fixedInfra',p.fixedInfra)}</td></tr>
+      <tr><th><b>Total Fixed Costs</b></th><td><b>${fmt(p.totalFixedCosts)}</b></td></tr>
+      <tr><th><b>Profit</b></th><td><b>${clickable('profit',p.profit)}</b></td></tr>
+    </tbody></table></div>`;
   });
-  download('scenario_summary.csv', toCsv(data));
+  return out;
 }
+
+function compareRows(){
+  const chosen=state.scenarios.filter(s=>state.compareIds.includes(s.id)); if(chosen.length<2) return [];
+  const base=runScenario(chosen[0]).pnl; if(!base) return [];
+  return chosen.map(s=>{const r=runScenario(s); if(r.errors.length) return null; const p=r.pnl; const pct=base.profit?((p.profit-base.profit)/base.profit*100):0; return {variant:s.name,revenue:p.totalRevenue,variable:p.totalVariableCosts,fixed:p.totalFixedCosts,profit:p.profit,dAbs:p.profit-base.profit,dPct:pct};}).filter(Boolean);
+}
+function renderCompare(){ const rows=compareRows(); return `<div class='panel'><div class='row'>${state.scenarios.map(s=>`<label><input type='checkbox' ${state.compareIds.includes(s.id)?'checked':''} onchange="toggleCompare('${s.id}',this.checked)"> ${s.name}</label>`).join('')}</div><table><thead><tr><th>Вариант</th><th>Total Revenue</th><th>Total Variable Costs</th><th>Total Fixed Costs</th><th>Profit</th><th>ΔProfit</th><th>ΔProfit %</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.variant}</td><td>${fmt(r.revenue)}</td><td>${fmt(r.variable)}</td><td>${fmt(r.fixed)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.dAbs)}</td><td>${fmt(r.dPct)}</td></tr>`).join('')}</tbody></table></div>`; }
+
+function runStressTests(){
+  const t=[]; const mk=(name,fn)=>{ const s=createScenario('stress'); fn(s); const r=runScenario(s); const ok=!r.errors.length; t.push({name,ok,reason:r.errors.join('; ')||'OK'}); };
+  mk('1. Нулевой мир',s=>{s.addsManual=[{date:s.start,value:0}];});
+  mk('2. Одиночная раскатка',s=>{s.addsManual=[{date:s.start,value:1}];});
+  mk('3. 100% trial churn',s=>{s.constants.trial_churn_rate_month=30;});
+  mk('4. 100% paid churn',s=>{s.constants.paid_churn_rate_month=30;});
+  mk('5. 100% paid_to_free',s=>{s.constants.paid_to_free_rate_month=30;});
+  mk('6. Экстремальный рост',s=>{s.autoGrowth=[{start:s.start,end:s.end,usersPerMonth:1_000_000_000}];});
+  mk('7. Высокий churn на малой базе',s=>{s.addsManual=[{date:s.start,value:3}]; s.constants.free_churn_rate_month=10;});
+  mk('8. Реальные дни месяца',s=>{s.start='2026-01-01'; s.end='2026-03-31';});
+  mk('9. share_calls_non_tm = 0',s=>{s.constants.share_calls_non_tm=0;});
+  const invalid=createScenario('invalid'); invalid.constants.share_l1=0.9; invalid.constants.share_l2=0.9; const ir=runScenario(invalid); t.push({name:'10. Невалидные доли',ok:ir.errors.length>0,reason:ir.errors.join('; ')||'ожидалась ошибка'});
+  mk('11. SMS крайние случаи',s=>{s.constants.sms_share_mts=1; s.constants.sms_share_t2=0; s.constants.sms_cost_t2=10;});
+  mk('12. Проверка правил L1–L4',s=>{s.constants.hangup_l1=0; s.constants.hangup_l4=1;});
+  return t;
+}
+function renderStress(){ const rows=runStressTests(); return `<div class='panel'><table><thead><tr><th>Тест</th><th>Статус</th><th>Причина</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.name}</td><td>${r.ok?'PASS':'FAIL'}</td><td>${r.reason}</td></tr>`).join('')}</tbody></table></div>`; }
+
+function render(){ renderTabs(); const map={variants:renderVariants,editor:renderEditor,results:renderResults,compare:renderCompare,stress:renderStress}; document.getElementById('view').innerHTML=map[state.tab](); }
+
+function pick(id){state.selectedId=id; render();}
+function upd(k,v){const s=getSelected(); s[k]=v; saveScenarios(); render();}
+function addScenario(){const s=createScenario(`Вариант ${state.scenarios.length+1}`); state.scenarios.push(s); state.selectedId=s.id; state.resultScenarioIds.push(s.id); saveScenarios(); render();}
+function cloneScenario(){const s=getSelected(); const c=structuredClone(s); c.id=Math.random().toString(36).slice(2,10); c.name=`${s.name} (копия)`; state.scenarios.push(c); state.selectedId=c.id; state.resultScenarioIds.push(c.id); saveScenarios(); render();}
+function deleteScenario(){ if(state.scenarios.length<2)return; state.scenarios=state.scenarios.filter(s=>s.id!==state.selectedId); state.compareIds=state.compareIds.filter(id=>id!==state.selectedId); state.resultScenarioIds=state.resultScenarioIds.filter(id=>id!==state.selectedId); state.selectedId=state.scenarios[0].id; saveScenarios(); render(); }
+function addManual(){getSelected().addsManual.push({date:getSelected().start,value:0}); saveScenarios(); render();}
+function addInterval(){getSelected().addsIntervals.push({start:getSelected().start,end:getSelected().end,total:0,intervalMode:'total'}); saveScenarios(); render();}
+function addAuto(){getSelected().autoGrowth.push({start:getSelected().start,end:getSelected().end,usersPerMonth:0}); saveScenarios(); render();}
+function addChurnEvent(){getSelected().churnEvents.push({date:getSelected().start,group:'paid',value:0}); saveScenarios(); render();}
+function delRow(kind,i){const s=getSelected(); const m={manual:'addsManual',interval:'addsIntervals',auto:'autoGrowth',churn:'churnEvents'}; s[m[kind]].splice(i,1); saveScenarios(); render();}
+function setCell(kind,i,k,v){const s=getSelected(); const m={manual:'addsManual',interval:'addsIntervals',auto:'autoGrowth',churn:'churnEvents'}; const isText=(k==='group'||k==='intervalMode'||k.includes('date')||k==='start'||k==='end'); s[m[kind]][i][k]=isText?v:Number(v); saveScenarios();}
+function setConst(k,v){const s=getSelected(); if(v==='true'||v==='false'){s.constants[k]=(v==='true');} else if(v==='1'&&typeof s.constants[k]==='boolean'){s.constants[k]=true;} else if(v==='0'&&typeof s.constants[k]==='boolean'){s.constants[k]=false;} else {const num=Number(v); s.constants[k]=Number.isFinite(num)?num:v;} saveScenarios();}
+function toggleCompare(id,on){ if(on&&!state.compareIds.includes(id)) state.compareIds.push(id); if(!on) state.compareIds=state.compareIds.filter(x=>x!==id); render(); }
+function toggleResultScenario(id,on){ if(on&&!state.resultScenarioIds.includes(id)) state.resultScenarioIds.push(id); if(!on) state.resultScenarioIds=state.resultScenarioIds.filter(x=>x!==id); render(); }
 
 render();
 </script>
