@@ -224,6 +224,27 @@ function runScenario(s){
       a.totalVariableCosts+=totalVariableCosts; a.contributionMargin+=contributionMargin;
     }
   });
+}
+
+function toCsv(rows) {
+  if (!rows.length) return '';
+  const keys = Object.keys(rows[0]);
+  return [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
+}
+function download(name, content) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+}
+
+function aggregateWindow(result, mode, month) {
+  const rows = result.daily.filter(r => mode === 'year' || r.month === month);
+  const sum = rows.reduce((a, r) => {
+    for (const k of ['trial','paid','free','total','callsTotal','callsNonTm','interconnectRevenue','subscriptionRevenue','sttCost','llmCost','smsCost','payrollCost','infraCost','revenue','costs','profit','llmRequests','interconnectSeconds','smsCount','classReq','dialogReq','summaryReq']) a[k] += r[k] || 0;
+    return a;
+  }, { trial:0, paid:0, free:0, total:0, callsTotal:0, callsNonTm:0, interconnectRevenue:0, subscriptionRevenue:0, sttCost:0, llmCost:0, smsCost:0, payrollCost:0, infraCost:0, revenue:0, costs:0, profit:0, llmRequests:0, interconnectSeconds:0, smsCount:0, classReq:0, dialogReq:0, summaryReq:0 });
+  return { ...sum, rowsCount: rows.length };
+}
 
   const scenarioRows=SCENARIOS.map(sx=>({id:sx.id,...scenarioAgg[sx.id]}));
   const revenueInterconnect=scenarioRows.reduce((a,r)=>a+r.revenueInterconnect,0);
@@ -257,6 +278,7 @@ function runScenario(s){
 
   return {errors,daily,scenarioRows,pnl:{revenueInterconnect,revenueSubscription,totalRevenue,stt,llmClass,llmDialog,llmSummary,llmTotal,sms,tts,totalVariableCosts,fixedPayroll,fixedInfra,totalFixedCosts,profit},warnings,unknownShare,determinedShare};
 }
+function closeFormula() { document.getElementById('formulaBg').style.display = 'none'; }
 
 function aggregateWindow(result,mode,month){
   if(mode==='year') return result;
@@ -272,6 +294,7 @@ function aggregateWindow(result,mode,month){
   });
   return runScenario({...getSelected(),start:`${month}-01`,end:`${month}-${new Date(month+'-01').getMonth()===1?28:31}`});
 }
+function setTab(tab) { state.tab = tab; render(); }
 
 function metricFormula(metricId, scenario, result){
   const c=scenario.constants,p=result.pnl;
