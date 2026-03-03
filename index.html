@@ -648,7 +648,7 @@ function renderScenarioBlock(s, result, prefix) {
         <td>${r.title}</td>
         <td>${clickable(key(`sc_calls_${idx}`), r.calls, `${r.title}: Calls`, [`Берем звонки сегмента (${r.title.includes('Демо')?'trial':'paid/free'}) и умножаем на долю типа сценария.`, `Итог calls = ${fmt(r.calls)}.`])}</td>
         <td>${clickable(key(`sc_sec_${idx}`), r.interconnectSeconds, `${r.title}: Interconnect seconds`, [`interconnect_seconds = calls * interconnect_seconds_per_call`, `${fmt(r.calls)} * ${fmt(s.constants.interconnect_seconds_per_call)} = ${fmt(r.interconnectSeconds)}.`])}</td>
-        <td>${clickable(key(`sc_rev_${idx}`), r.revenueInterconnect, `${r.title}: Revenue Interconnect`, [`revenue_interconnect = interconnect_seconds * (interconnect_rub_per_min / 60)`, `${fmt(r.interconnectSeconds)} * ${fmt(s.constants.interconnect_rub_per_min/60)} = ${fmt(r.revenueInterconnect)}.`])}</td>
+        <td>${clickable(key(`sc_rev_${idx}`), r.revenueInterconnect, `${r.title}: Revenue Interconnect`, ['Интерконнект считается по формуле: кол-во секунд в сценарии * 0,93 руб/мин / 60 сек.', `То есть: ${fmt(r.interconnectSeconds)} * 0,93 / 60 = ${fmt(r.revenueInterconnect)} руб.`])}</td>
         <td>${clickable(key(`sc_stt_${idx}`), r.costSTT, `${r.title}: STT`, [`stt_cost = calls * stt_seconds_per_call * stt_rub_per_sec`, `${fmt(r.calls)} * ${fmt(s.constants.stt_seconds_per_call)} * ${fmt(s.constants.stt_rub_per_sec)} = ${fmt(r.costSTT)}.`])}</td>
         <td>${clickable(key(`sc_lc_${idx}`), r.costLLMClassification, `${r.title}: LLM classification`, [`llm_class = class_requests * price_per_request`, `Итог = ${fmt(r.costLLMClassification)}.`])}</td>
         <td>${clickable(key(`sc_ld_${idx}`), r.costLLMDialog, `${r.title}: LLM dialog`, [`llm_dialog = dialog_requests * price_per_request`, `Итог = ${fmt(r.costLLMDialog)}.`])}</td>
@@ -661,7 +661,7 @@ function renderScenarioBlock(s, result, prefix) {
 
     <h4>Итоговый P&L за период</h4>
     <table><tbody>
-      <tr><th>Revenue Interconnect</th><td>${clickable(key('rev_i'), p.revenueInterconnect, 'Revenue Interconnect', ['Суммируем interconnect revenue по всем сценариям.', `Итог = ${fmt(p.revenueInterconnect)}.`])}</td></tr>
+      <tr><th>Revenue Interconnect</th><td>${clickable(key('rev_i'), p.revenueInterconnect, 'Revenue Interconnect', ['По каждому сценарию считаем: секунды_сценария * 0,93 / 60. Затем суммируем по всем сценариям.', `Итоговая выручка Interconnect = ${fmt(p.revenueInterconnect)} руб.`])}</td></tr>
       <tr><th>Revenue Subscription</th><td>${clickable(key('rev_s'), p.revenueSubscription, 'Revenue Subscription', ['По каждому дню: paid[d] * 49 / days_in_month(d).', `Сумма по периоду = ${fmt(p.revenueSubscription)}.`])}</td></tr>
       <tr><th><b>Total Revenue</b></th><td><b>${clickable(key('rev_t'), p.totalRevenue, 'Total Revenue', ['Складываем Revenue Interconnect и Revenue Subscription.', `${fmt(p.revenueInterconnect)} + ${fmt(p.revenueSubscription)} = ${fmt(p.totalRevenue)}.`])}</b></td></tr>
 
