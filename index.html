@@ -44,6 +44,7 @@
     <div id="formulaBody"></div>
   </div>
 </div>
+<div id="formulaBg" class="modalBg"><div class="modal"><div class="row" style="justify-content:space-between"><h3 id="formulaTitle"></h3><button onclick="closeFormula()">Закрыть</button></div><div id="formulaBody"></div></div></div>
 <script>
 const DAY_MS = 24 * 60 * 60 * 1000;
 const fmt = v => Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
@@ -646,6 +647,7 @@ function renderScenarioBlock(s, result, prefix) {
         <td>${r.id}</td>
         <td>${r.title}</td>
         <td>${clickable(key(`sc_calls_${idx}`), r.calls, `${r.title}: Calls`, [`Берем звонки сегмента (${r.title.includes('Демо')?'trial':'paid/free'}) и умножаем на долю типа сценария.`, `Итог calls = ${fmt(r.calls)}.`])}</td>
+<<<<<<< codex/develop-local-pl-calculation-app-plsy37
         <td>${clickable(key(`sc_sec_${idx}`), r.interconnectSeconds, `${r.title}: Interconnect seconds`, [
           'Шаг 1. Берем общее количество звонков в этом сценарии за период (calls).',
           `calls = ${fmt(r.calls)}.`,
@@ -661,6 +663,10 @@ function renderScenarioBlock(s, result, prefix) {
           'Шаг 3. Умножаем секунды на цену секунды.',
           `revenue_interconnect = ${fmt(r.interconnectSeconds)} * ${fmt(0.93/60)} = ${fmt(r.revenueInterconnect)} руб.`
         ])}</td>
+=======
+        <td>${clickable(key(`sc_sec_${idx}`), r.interconnectSeconds, `${r.title}: Interconnect seconds`, [`interconnect_seconds = calls * interconnect_seconds_per_call`, `${fmt(r.calls)} * ${fmt(s.constants.interconnect_seconds_per_call)} = ${fmt(r.interconnectSeconds)}.`])}</td>
+        <td>${clickable(key(`sc_rev_${idx}`), r.revenueInterconnect, `${r.title}: Revenue Interconnect`, ['Интерконнект считается по формуле: кол-во секунд в сценарии * 0,93 руб/мин / 60 сек.', `То есть: ${fmt(r.interconnectSeconds)} * 0,93 / 60 = ${fmt(r.revenueInterconnect)} руб.`])}</td>
+>>>>>>> main
         <td>${clickable(key(`sc_stt_${idx}`), r.costSTT, `${r.title}: STT`, [`stt_cost = calls * stt_seconds_per_call * stt_rub_per_sec`, `${fmt(r.calls)} * ${fmt(s.constants.stt_seconds_per_call)} * ${fmt(s.constants.stt_rub_per_sec)} = ${fmt(r.costSTT)}.`])}</td>
         <td>${clickable(key(`sc_lc_${idx}`), r.costLLMClassification, `${r.title}: LLM classification`, [`llm_class = class_requests * price_per_request`, `Итог = ${fmt(r.costLLMClassification)}.`])}</td>
         <td>${clickable(key(`sc_ld_${idx}`), r.costLLMDialog, `${r.title}: LLM dialog`, [`llm_dialog = dialog_requests * price_per_request`, `Итог = ${fmt(r.costLLMDialog)}.`])}</td>
@@ -673,6 +679,7 @@ function renderScenarioBlock(s, result, prefix) {
 
     <h4>Итоговый P&L за период</h4>
     <table><tbody>
+<<<<<<< codex/develop-local-pl-calculation-app-plsy37
       <tr><th>Revenue Interconnect</th><td>${clickable(key('rev_i'), p.revenueInterconnect, 'Revenue Interconnect', [
         'Шаг 1. Для каждого сценария считаем секунды: interconnect_seconds = calls * interconnect_seconds_per_call.',
         'Шаг 2. Для каждого сценария считаем выручку: revenue_interconnect_scenario = interconnect_seconds * (0,93 / 60).',
@@ -680,6 +687,9 @@ function renderScenarioBlock(s, result, prefix) {
         'Шаг 3. Складываем выручку всех сценариев за период.',
         `Итоговая выручка Interconnect = ${fmt(p.revenueInterconnect)} руб.`
       ])}</td></tr>
+=======
+      <tr><th>Revenue Interconnect</th><td>${clickable(key('rev_i'), p.revenueInterconnect, 'Revenue Interconnect', ['По каждому сценарию считаем: секунды_сценария * 0,93 / 60. Затем суммируем по всем сценариям.', `Итоговая выручка Interconnect = ${fmt(p.revenueInterconnect)} руб.`])}</td></tr>
+>>>>>>> main
       <tr><th>Revenue Subscription</th><td>${clickable(key('rev_s'), p.revenueSubscription, 'Revenue Subscription', ['По каждому дню: paid[d] * 49 / days_in_month(d).', `Сумма по периоду = ${fmt(p.revenueSubscription)}.`])}</td></tr>
       <tr><th><b>Total Revenue</b></th><td><b>${clickable(key('rev_t'), p.totalRevenue, 'Total Revenue', ['Складываем Revenue Interconnect и Revenue Subscription.', `${fmt(p.revenueInterconnect)} + ${fmt(p.revenueSubscription)} = ${fmt(p.totalRevenue)}.`])}</b></td></tr>
 
@@ -767,6 +777,7 @@ function renderStress() {
     ${rows.map(r => `<tr><td>${r.name}</td><td>${r.ok?'PASS':'FAIL'}</td><td>${r.reason}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
+function renderCompare(){ const rows=compareRows(); return `<div class='panel'><div class='row'>${state.scenarios.map(s=>`<label><input type='checkbox' ${state.compareIds.includes(s.id)?'checked':''} onchange="toggleCompare('${s.id}',this.checked)"> ${s.name}</label>`).join('')}</div><table><thead><tr><th>Вариант</th><th>Total Revenue</th><th>Total Variable Costs</th><th>Total Fixed Costs</th><th>Profit</th><th>ΔProfit</th><th>ΔProfit %</th></tr></thead><tbody>${rows.map(r=>`<tr><td>${r.variant}</td><td>${fmt(r.revenue)}</td><td>${fmt(r.variable)}</td><td>${fmt(r.fixed)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.dAbs)}</td><td>${fmt(r.dPct)}</td></tr>`).join('')}</tbody></table></div>`; }
 
 function render() {
   renderTabs();
