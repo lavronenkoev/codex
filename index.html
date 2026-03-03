@@ -3,406 +3,779 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Калькулятор экономики входящих звонков</title>
+  <title>P&L Приемная</title>
   <style>
-    body { margin:0; font-family:Arial,sans-serif; background:#f3f5f9; color:#1e293b; }
+    body { margin:0; font-family: Arial,sans-serif; background:#f3f5fa; color:#0f172a; }
     header { background:#0f172a; color:#fff; padding:12px 16px; }
-    .wrap { max-width:1400px; margin:0 auto; padding:14px; }
-    .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-    .tabs button { border:1px solid #cbd5e1; background:#fff; border-radius:8px; padding:8px 12px; cursor:pointer; }
+    .wrap { max-width: 1600px; margin:0 auto; padding:14px; }
+    .tabs { display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+    .tabs button { border:1px solid #94a3b8; background:#fff; border-radius:8px; padding:8px 12px; cursor:pointer; }
     .tabs button.active { background:#2563eb; color:#fff; border-color:#2563eb; }
-    .panel { background:#fff; border:1px solid #dbe3ef; border-radius:10px; padding:12px; margin-bottom:12px; }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th,td { border:1px solid #e5e7eb; padding:6px; text-align:left; }
-    th { background:#f8fafc; }
-    input,select { width:100%; padding:6px; box-sizing:border-box; }
+    .panel { background:#fff; border:1px solid #dbe2ef; border-radius:12px; padding:12px; margin-bottom:12px; }
     .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
-    .kpi { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:10px; }
-    .card { background:#f8fafc; border:1px solid #dbe3ef; border-radius:8px; padding:8px; }
-    .small { font-size:12px; color:#475569; }
+    .grid4 { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+    .grid3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    input,select,textarea { width:100%; padding:8px; box-sizing:border-box; border:1px solid #cbd5e1; border-radius:8px; }
+    button { border:1px solid #94a3b8; border-radius:8px; background:#fff; padding:8px 10px; cursor:pointer; }
+    button.primary { background:#2563eb; color:#fff; border-color:#2563eb; }
+    table { width:100%; border-collapse: collapse; font-size:12px; }
+    th,td { border:1px solid #e5e7eb; padding:6px; text-align:right; }
+    th { background:#f8fafc; }
+    td:first-child, th:first-child { text-align:left; }
+    .muted { color:#475569; font-size:12px; }
+    .warn { margin-top:8px; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px; color:#92400e; font-size:12px; }
+    .err { color:#b91c1c; font-size:12px; }
+    .kpi { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .card { border:1px solid #dbe2ef; border-radius:8px; padding:10px; background:#f8fafc; }
     .click { color:#1d4ed8; cursor:pointer; text-decoration:underline; }
-    .info { width:18px; height:18px; border-radius:999px; border:1px solid #94a3b8; background:#eef2ff; cursor:pointer; font-size:11px; }
-    .modalBg { position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:30; }
-    .modal { width:min(860px,95vw); max-height:84vh; overflow:auto; border-radius:10px; background:#fff; padding:14px; }
-    .chart { width:100%; height:220px; border:1px solid #dbe3ef; border-radius:8px; }
+    .modalBg { position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; align-items:center; justify-content:center; z-index:40; }
+    .modal { width:min(1000px,95vw); max-height:84vh; overflow:auto; border-radius:10px; background:#fff; padding:14px; }
   </style>
 </head>
 <body>
-<header><b>Интерактивный калькулятор P&L - обработка входящих звонков</b></header>
+<header><b>P&L-калькулятор сервиса «Приемная»</b></header>
 <div class="wrap">
   <div id="tabs" class="tabs"></div>
-  <div id="content"></div>
+  <div id="view"></div>
 </div>
-<div class="modalBg" id="modalBg">
+<div id="formulaBg" class="modalBg">
   <div class="modal">
-    <div class="row" style="justify-content:space-between"><h3 id="modalTitle"></h3><button onclick="closeModal()">Закрыть</button></div>
-    <pre id="modalBody" style="white-space:pre-wrap"></pre>
+    <div class="row" style="justify-content:space-between"><h3 id="formulaTitle"></h3><button onclick="closeFormula()">Закрыть</button></div>
+    <div id="formulaBody"></div>
   </div>
 </div>
 <script>
-const TZ='Europe/Tallinn';
-const fmt=v=>Number(v||0).toLocaleString('ru-RU',{maximumFractionDigits:4});
-const money=v=>Number(v||0).toLocaleString('ru-RU',{minimumFractionDigits:2,maximumFractionDigits:2});
-const n=v=>Number(v)||0;
-const ds=s=>new Date(s+'T00:00:00');
-const dstr=d=>d.toISOString().slice(0,10);
-function* eachDay(start,end){ for(let x=new Date(start); x<=end; x.setDate(x.getDate()+1)) yield new Date(x); }
-const monthKey=d=>d.toISOString().slice(0,7);
-const dim=(y,m)=>new Date(y,m+1,0).getDate();
-
-const help={
-  база:'Обслуживаемая база - число клиентов, для которых сервис активен в дату. Значение действует до следующей точки.',
-  распределение:'Среднее незнакомых звонков в день на пользователя считается по корзинам: сумма(доля * звонков за период / дни периода).',
-  сегменты:'Доля выручки, которая реально может быть получена, уменьшается на долю same_fact. Формула: 1 - share_same_fact.',
-  доля:'Все доли сценариев задаются в процентах от звонков с незнакомых номеров.',
-  tts:'Расход TTS не фиксированный. Он считается по формуле цена за символ * число уникальных фраз в год * средняя длина фразы.'
-};
-
-const scenarioDefs=[
-  ['s1_answer','Решатель 1: перевод на человека, абонент ответил'],
-  ['s1_missed_sec','Решатель 1: перевод на человека, абонент не ответил, ушло на секретаря'],
-  ['s1_spam','Решатель 1: определили спам, разговор без перевода'],
-  ['s1_unknown','Решатель 1: не смогли определить, ушло дальше'],
-  ['s2_answer','Решатель 2: перевод на человека, абонент ответил'],
-  ['s2_missed_sec','Решатель 2: перевод на человека, абонент не ответил, ушло на секретаря'],
-  ['s2_spam','Решатель 2: определили спам'],
-  ['s2_unknown','Решатель 2: не смогли определить, ушло дальше'],
-  ['s3_answer','Решатель 3: перевод на человека, абонент ответил'],
-  ['s3_missed_sec','Решатель 3: перевод на человека, абонент не ответил, ушло на секретаря'],
-  ['s3_spam','Решатель 3: определили спам'],
-  ['s3_unknown','Решатель 3: не смогли определить, ушло дальше'],
-  ['g_answer','Генеративка: перевод на человека, абонент ответил'],
-  ['g_missed_sec','Генеративка: перевод, абонент не ответил, ушло на секретаря'],
-  ['g_missed_no_sec','Генеративка: перевод, абонент не ответил, до секретаря не дошло'],
-  ['g_spam','Генеративка: определили как спам/неполезный'],
-  ['g_hangup','Генеративка: не успели определить, повесили трубку'],
-  ['robot_hello','Робот сказал алло, первой фразы не было (слепая зона)']
-];
-
-function emptyScenario(id,name){
-  return {id,name,enabled:false,sharePercent:0,wait:0,out:0,input:0,billFirst3:false,useSTT:false,useLLM:false,llmReq:1.91,useSMS:false,smsRule:'нет'};
-}
-function normalizeShares(arr){
-  const sum=arr.reduce((a,s)=>a+(s.enabled?n(s.sharePercent):0),0);
-  if(sum<=0) return arr;
-  arr.forEach(s=>{ if(s.enabled) s.sharePercent=n(s.sharePercent)*100/sum; });
+const DAY_MS = 24 * 60 * 60 * 1000;
+const fmt = v => Number(v || 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+const d = s => new Date(`${s}T00:00:00`);
+const ds = x => x.toISOString().slice(0, 10);
+const monthKey = x => x.toISOString().slice(0, 7);
+const daysInMonth = x => new Date(x.getFullYear(), x.getMonth() + 1, 0).getDate();
+const daysInYear = x => (new Date(x.getFullYear(), 1, 29).getMonth() === 1 ? 366 : 365);
+const eachDay = (start, end) => {
+  const arr = [];
+  for (let t = start.getTime(); t <= end.getTime(); t += DAY_MS) arr.push(new Date(t));
   return arr;
-}
-function currentPreset(){
-  const map=Object.fromEntries(scenarioDefs.map(([id,name])=>[id,emptyScenario(id,name)]));
-  const set=(id,val)=>Object.assign(map[id],val,{enabled:true});
-  set('s1_answer',{sharePercent:44.444,wait:0,out:3,input:0,billFirst3:true});
-  set('s1_missed_sec',{sharePercent:9.756,wait:0,out:6,input:6,useSTT:true});
-  set('s1_spam',{sharePercent:6.3,wait:2,out:8,input:14,useSTT:true,useSMS:true,smsRule:'только лайк-спам (доля X)'});
-  set('s3_answer',{sharePercent:1.6,wait:0,out:2,input:4,useSTT:true});
-  set('robot_hello',{sharePercent:18.3,wait:0,out:2,input:0,useSMS:true,smsRule:'нет первой фразы'});
-  set('g_answer',{sharePercent:3.034,wait:4,out:6,input:4,billFirst3:true,useSTT:true,useLLM:true,llmReq:1.91});
-  set('g_missed_sec',{sharePercent:0.333,wait:20,out:2,input:4,useSTT:true,useLLM:true,llmReq:1.91});
-  set('g_missed_no_sec',{sharePercent:0.333,wait:10,out:2,input:4,useSTT:true,useLLM:true,llmReq:1.91});
-  set('g_spam',{sharePercent:7.95,wait:2,out:8,input:14,useSTT:true,useLLM:true,llmReq:1.91,useSMS:true,smsRule:'только лайк-спам (доля X)'});
-  set('g_hangup',{sharePercent:7.95,wait:0,out:3,input:7,useSTT:true,useLLM:true,llmReq:1.91,useSMS:true,smsRule:'не успели определить / повесили трубку'});
-  return normalizeShares(Object.values(map));
-}
-
-const state={
-  tab:'period',
-  period:{start:'2026-03-01',end:'2026-12-31',timezone:TZ},
-  rollout:{userTimepoints:[
-    {date:'2026-02-24',users:200},{date:'2026-03-01',users:400},{date:'2026-03-15',users:15000},{date:'2026-04-15',users:30000},
-    {date:'2026-05-15',users:3800000},{date:'2026-06-01',users:3850000},{date:'2026-07-01',users:3900000},{date:'2026-08-01',users:3950000},
-    {date:'2026-09-01',users:4000000},{date:'2026-10-01',users:4050000},{date:'2026-11-01',users:4100000},{date:'2026-12-01',users:4150000}
-  ]},
-  distributionBuckets:[
-    {bucket:'0',percent:35,calls:0,days:30},
-    {bucket:'1',percent:28,calls:1,days:30},
-    {bucket:'2',percent:16,calls:2,days:30},
-    {bucket:'3-5',percent:12,calls:4,days:30},
-    {bucket:'6-10',percent:6,calls:8,days:30},
-    {bucket:'11-20',percent:2,calls:15,days:30},
-    {bucket:'21+',percent:1,calls:25,days:30}
-  ],
-  segments:{rows:[
-    {home_flag:1,same_fact:0,from_home:0,count:1541433779},
-    {home_flag:1,same_fact:1,from_home:1,count:3295135084},
-    {home_flag:0,same_fact:0,from_home:0,count:328555732},
-    {home_flag:0,same_fact:0,from_home:1,count:155373983},
-    {home_flag:0,same_fact:1,from_home:0,count:335498215}
-  ],overrideNotHome:false,overrideNotHomeValue:0.1449,overrideRevenueEligible:false,overrideRevenueEligibleValue:0.3579},
-  scenarios:currentPreset(),
-  constants:{
-    interconnectMin:0.93,sttSec:0.0011,llmPer1M:45,llmOut:1337,llmIn:50,llmInWeight:4,
-    ttsChar:0.0086,ttsPhrasesYear:240000,ttsChars:40,smsPrice:0.035,smsLikeSpamShare:0.30,
-    deliveryPrice:1.02,radiusMts:0.12,radiusT2:0.035,shareMts:0,
-    radioMode:'ввести вручную',avgRadioManual:1.0,radioDist:[{minutes:0.5,cnt:1},{minutes:1,cnt:2},{minutes:2,cnt:1}]
-  },
-  payroll:Array.from({length:12},()=>9930000)
 };
 
-function usersServed(date){
-  const arr=[...state.rollout.userTimepoints].sort((a,b)=>a.date.localeCompare(b.date));
-  let value=0;
-  for(const p of arr){ if(p.date<=dstr(date)) value=n(p.users); else break; }
-  return value;
-}
-function avgUnknownCallsPerUserPerDay(){
-  return state.distributionBuckets.reduce((sum,b)=>sum+(n(b.percent)/100)*n(b.calls)/Math.max(1,n(b.days)),0);
-}
-function unknownCallsDay(date){ return usersServed(date)*avgUnknownCallsPerUserPerDay(); }
-function segmentShares(){
-  const total=state.segments.rows.reduce((a,r)=>a+n(r.count),0)||1;
-  const notHome=state.segments.rows.filter(r=>n(r.home_flag)===0).reduce((a,r)=>a+n(r.count),0)/total;
-  const sameFact=state.segments.rows.filter(r=>n(r.same_fact)===1).reduce((a,r)=>a+n(r.count),0)/total;
-  const revenueEligible=1-sameFact;
+const DEFAULTS = {
+  trial_days: 90,
+  paid_share_after_trial: 0.5,
+  free_share_after_trial: 0.5,
+  trial_churn_rate_month: 0.01,
+  paid_churn_rate_month: 0.01,
+  free_churn_rate_month: 0.01,
+  paid_to_free_rate_month: 0.01,
+  calls_per_user_per_month: 111,
+  share_calls_non_tm: 0.9245,
+
+  share_l1: 0.60,
+  share_l2: 0.15,
+  share_l3: 0.15,
+  share_l4: 0.10,
+  hangup_l1: 0.01,
+  hangup_l2: 0.16,
+  hangup_l3: 0.16,
+  hangup_l4: 0.16,
+
+  type_useful: 0.35,
+  type_info_confirm: 0.15,
+  type_info_notify: 0.15,
+  type_spam_hard: 0.15,
+  type_spam_mid: 0.10,
+  type_spam_light: 0.10,
+
+  interconnect_rub_per_min: 0.93,
+  interconnect_seconds_per_call: 60,
+  subscription_price_month: 49,
+
+  stt_seconds_per_call: 12,
+  stt_rub_per_sec: 0.00011,
+
+  llm_rub_per_1m_tokens: 45,
+  llm_tokens_out: 400,
+  llm_tokens_in: 120,
+  llm_input_weight: 4,
+
+  sms_cost_mts: 0.30,
+  sms_cost_t2: 0,
+  sms_share_mts: 0.18,
+  sms_share_t2: 0.82,
+  no_pickup_rate: 0.00048,
+  sms_on_unknown_hangup: true,
+  sms_on_light_spam: true,
+
+  payroll_month: 9_930_000,
+  infra_year: 570_000,
+
+  tts_enabled: false,
+  tts_rub_per_char: 0,
+  tts_chars_per_call: 0,
+
+  sanity_users_threshold: 20_000_000,
+  paid_vip_escalation_share: 0.08,
+};
+
+function defaultRollout() {
   return {
-    notHome, sameFact, revenueEligible,
-    notHomeEff:state.segments.overrideNotHome?n(state.segments.overrideNotHomeValue):notHome,
-    revenueEligibleEff:state.segments.overrideRevenueEligible?n(state.segments.overrideRevenueEligibleValue):revenueEligible
+    addsManual: [
+      { date: '2026-01-01', value: 200 },
+      { date: '2026-03-05', value: 300 },
+      { date: '2026-03-16', value: 1300 },
+      { date: '2026-03-30', value: 13000 },
+      { date: '2026-04-13', value: 15000 },
+      { date: '2026-04-27', value: 30000 },
+    ],
+    addsIntervals: [
+      { start: '2026-05-04', end: '2026-05-07', intervalMode: 'per_day', total: 50000 },
+      { start: '2026-05-11', end: '2026-05-14', intervalMode: 'per_day', total: 100000 },
+      { start: '2026-05-18', end: '2026-05-21', intervalMode: 'per_day', total: 200000 },
+      { start: '2026-05-25', end: '2026-05-28', intervalMode: 'per_day', total: 300000 },
+      { start: '2026-06-01', end: '2026-06-04', intervalMode: 'per_day', total: 300000 },
+      { start: '2026-06-08', end: '2026-06-11', intervalMode: 'per_day', total: 3000 },
+    ],
+    autoGrowth: [{ start: '2026-06-12', end: '2026-12-31', usersPerMonth: 75000 }],
   };
 }
-function llmCostPerRequest(){
-  const c=state.constants;
-  return (n(c.llmOut)+n(c.llmIn)*n(c.llmInWeight))*n(c.llmPer1M)/1_000_000;
-}
-function avgRadioMinutes(){
-  const c=state.constants;
-  if(c.radioMode==='ввести вручную') return n(c.avgRadioManual);
-  const sum=c.radioDist.reduce((a,r)=>a+n(r.minutes)*n(r.cnt),0);
-  const cnt=c.radioDist.reduce((a,r)=>a+n(r.cnt),0)||1;
-  return sum/cnt;
-}
-function smsCountByRule(s,calls){
-  if(!s.useSMS) return 0;
-  if(s.smsRule==='всегда' || s.smsRule==='нет первой фразы' || s.smsRule==='не успели определить / повесили трубку') return calls;
-  if(s.smsRule==='только лайк-спам (доля X)') return calls*n(state.constants.smsLikeSpamShare);
-  return 0;
-}
-function billableSec(s){
-  const total=n(s.wait)+n(s.out)+n(s.input);
-  return s.billFirst3?total:Math.max(0,total-3);
+
+function createScenario(name = 'Базовый вариант') {
+  const rollout = defaultRollout();
+  return {
+    id: Math.random().toString(36).slice(2, 10),
+    name,
+    comment: '',
+    start: '2026-01-01',
+    end: '2026-12-31',
+    constants: { ...DEFAULTS },
+    addsManual: rollout.addsManual,
+    addsIntervals: rollout.addsIntervals,
+    autoGrowth: rollout.autoGrowth,
+    churnEvents: [],
+  };
 }
 
-function calculate(period={start:state.period.start,end:state.period.end}){
-  const start=ds(period.start), end=ds(period.end);
-  const shares=segmentShares();
-  const rubSec=n(state.constants.interconnectMin)/60;
-  const llmReqCost=llmCostPerRequest();
-  const scenarioAgg=Object.fromEntries(state.scenarios.map(s=>[s.id,{id:s.id,name:s.name,calls:0,revenue:0,stt:0,llm:0,smsCount:0,sms:0,margin:0,billable:billableSec(s)}]));
-  const monthly={};
-  let totalUnknown=0,totalCallsServed=0,totalRevenue=0,totalSTT=0,totalLLM=0,totalSMS=0,totalDelivery=0,totalRadius=0,totalTTS=0,totalPayroll=0,totalProfit=0;
+const SCENARIOS = [
+  // DEMO
+  { id: 'DEMO_UNKNOWN', title: 'Демо · Unknown Hangup', segment: 'trial', type: 'unknown' },
+  { id: 'DEMO_USEFUL', title: 'Демо · Полезный', segment: 'trial', type: 'useful' },
+  { id: 'DEMO_INFO_CONFIRM', title: 'Демо · Инфо подтверждение', segment: 'trial', type: 'info_confirm' },
+  { id: 'DEMO_INFO_NOTIFY', title: 'Демо · Инфо уведомление', segment: 'trial', type: 'info_notify' },
+  { id: 'DEMO_SPAM_HARD', title: 'Демо · Спам тяжелый', segment: 'trial', type: 'spam_hard' },
+  { id: 'DEMO_SPAM_MID', title: 'Демо · Спам средний', segment: 'trial', type: 'spam_mid' },
+  { id: 'DEMO_SPAM_LIGHT', title: 'Демо · Спам легкий', segment: 'trial', type: 'spam_light' },
+  // PAID
+  { id: 'PAID_UNKNOWN', title: 'Платная · Unknown Hangup', segment: 'paid', type: 'unknown' },
+  { id: 'PAID_USEFUL', title: 'Платная · Полезный', segment: 'paid', type: 'useful' },
+  { id: 'PAID_INFO_CONFIRM', title: 'Платная · Инфо подтверждение', segment: 'paid', type: 'info_confirm' },
+  { id: 'PAID_INFO_NOTIFY', title: 'Платная · Инфо уведомление', segment: 'paid', type: 'info_notify' },
+  { id: 'PAID_SPAM_HARD', title: 'Платная · Спам тяжелый', segment: 'paid', type: 'spam_hard' },
+  { id: 'PAID_SPAM_MID', title: 'Платная · Спам средний', segment: 'paid', type: 'spam_mid' },
+  { id: 'PAID_SPAM_LIGHT', title: 'Платная · Спам легкий', segment: 'paid', type: 'spam_light' },
+  { id: 'PAID_VIP_ESC', title: 'Платная · VIP эскалация', segment: 'paid', type: 'vip_escalation' },
+  // FREE (churned)
+  { id: 'FREE_UNKNOWN', title: 'Бесплатная · Unknown Hangup', segment: 'free', type: 'unknown' },
+  { id: 'FREE_USEFUL', title: 'Бесплатная · Полезный', segment: 'free', type: 'useful' },
+  { id: 'FREE_INFO_CONFIRM', title: 'Бесплатная · Инфо подтверждение', segment: 'free', type: 'info_confirm' },
+  { id: 'FREE_INFO_NOTIFY', title: 'Бесплатная · Инфо уведомление', segment: 'free', type: 'info_notify' },
+  { id: 'FREE_SPAM_HARD', title: 'Бесплатная · Спам тяжелый', segment: 'free', type: 'spam_hard' },
+  { id: 'FREE_SPAM_MID', title: 'Бесплатная · Спам средний', segment: 'free', type: 'spam_mid' },
+  { id: 'FREE_SPAM_LIGHT', title: 'Бесплатная · Спам легкий', segment: 'free', type: 'spam_light' },
+];
 
-  for(const day of eachDay(start,end)){
-    const key=monthKey(day);
-    if(!monthly[key]) monthly[key]={month:key,calls:0,revenue:0,stt:0,llm:0,sms:0,delivery:0,radius:0,tts:0,payroll:0,profit:0};
+const STORAGE_KEY = 'priemnaya_pl_scenarios_v4';
 
-    const unknown=unknownCallsDay(day);
-    totalUnknown+=unknown;
-    let callsServedDay=0,revDay=0,sttDay=0,llmDay=0,smsDay=0;
+function normalizeScenario(raw) {
+  const base = createScenario();
+  const src = raw && typeof raw === 'object' ? raw : {};
+  return {
+    ...base,
+    ...src,
+    constants: { ...base.constants, ...(src.constants && typeof src.constants === 'object' ? src.constants : {}) },
+    addsManual: Array.isArray(src.addsManual) ? src.addsManual : base.addsManual,
+    addsIntervals: Array.isArray(src.addsIntervals) ? src.addsIntervals.map(r => ({
+      start: r.start || base.start,
+      end: r.end || base.end,
+      intervalMode: r.intervalMode === 'per_day' ? 'per_day' : 'total',
+      total: Number(r.total) || 0,
+    })) : base.addsIntervals,
+    autoGrowth: Array.isArray(src.autoGrowth) ? src.autoGrowth : base.autoGrowth,
+    churnEvents: Array.isArray(src.churnEvents) ? src.churnEvents : base.churnEvents,
+  };
+}
 
-    for(const s of state.scenarios){
-      if(!s.enabled) continue;
-      const share=n(s.sharePercent)/100;
-      const calls=unknown*share;
-      callsServedDay+=calls;
-      const revenue=calls*billableSec(s)*rubSec*shares.revenueEligibleEff;
-      const stt=s.useSTT?calls*n(s.input)*n(state.constants.sttSec):0;
-      const llm=s.useLLM?calls*n(s.llmReq)*llmReqCost:0;
-      const smsCount=smsCountByRule(s,calls);
-      const sms=smsCount*n(state.constants.smsPrice);
-      const margin=revenue-stt-llm-sms;
+function loadScenarios() {
+  try {
+    const x = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    if (!Array.isArray(x)) return [];
+    return x.map(normalizeScenario);
+  } catch {
+    return [];
+  }
+}
+function saveScenarios() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.scenarios)); }
 
-      const a=scenarioAgg[s.id];
-      a.calls+=calls; a.revenue+=revenue; a.stt+=stt; a.llm+=llm; a.smsCount+=smsCount; a.sms+=sms; a.margin+=margin;
-      revDay+=revenue; sttDay+=stt; llmDay+=llm; smsDay+=sms;
-    }
+const state = {
+  tab: 'variants',
+  selectedId: null,
+  mode: 'year',
+  month: '2026-06',
+  compareIds: [],
+  scenarioIdsInSummary: [],
+  scenarios: loadScenarios(),
+};
+if (!state.scenarios.length) state.scenarios = [createScenario()];
+if (!state.selectedId) state.selectedId = state.scenarios[0].id;
+if (!state.scenarioIdsInSummary.length) state.scenarioIdsInSummary = state.scenarios.map(s => s.id);
 
-    const delivery=callsServedDay*shares.notHomeEff*n(state.constants.deliveryPrice);
-    const radiusRate=n(state.constants.shareMts)*n(state.constants.radiusMts)+(1-n(state.constants.shareMts))*n(state.constants.radiusT2);
-    const radius=callsServedDay*avgRadioMinutes()*radiusRate;
-    const ttsDay=n(state.constants.ttsChar)*n(state.constants.ttsPhrasesYear)*n(state.constants.ttsChars)/365;
-    const mi=day.getMonth();
-    const payrollDay=n(state.payroll[mi])/dim(day.getFullYear(),mi);
+const selected = () => state.scenarios.find(s => s.id === state.selectedId);
 
-    const profit=revDay-sttDay-llmDay-smsDay-delivery-radius-ttsDay-payrollDay;
+function validateScenario(s) {
+  const c = s.constants;
+  const errors = [];
+  const levels = c.share_l1 + c.share_l2 + c.share_l3 + c.share_l4;
+  const types = c.type_useful + c.type_info_confirm + c.type_info_notify + c.type_spam_hard + c.type_spam_mid + c.type_spam_light;
+  if (Math.abs(levels - 1) > 1e-8) errors.push('Сумма долей L1-L4 должна быть 1.');
+  if (Math.abs(types - 1) > 1e-8) errors.push('Сумма долей типов звонков должна быть 1.');
+  Object.entries(c).forEach(([k, v]) => {
+    if (typeof v === 'number' && (!Number.isFinite(v) || v < 0)) errors.push(`Некорректная константа: ${k}`);
+  });
+  return errors;
+}
 
-    totalCallsServed+=callsServedDay; totalRevenue+=revDay; totalSTT+=sttDay; totalLLM+=llmDay; totalSMS+=smsDay;
-    totalDelivery+=delivery; totalRadius+=radius; totalTTS+=ttsDay; totalPayroll+=payrollDay; totalProfit+=profit;
+function buildAddsMap(s) {
+  const map = new Map();
+  const add = (date, v) => map.set(date, (map.get(date) || 0) + Math.max(0, Number(v) || 0));
 
-    monthly[key].calls+=callsServedDay; monthly[key].revenue+=revDay; monthly[key].stt+=sttDay; monthly[key].llm+=llmDay; monthly[key].sms+=smsDay;
-    monthly[key].delivery+=delivery; monthly[key].radius+=radius; monthly[key].tts+=ttsDay; monthly[key].payroll+=payrollDay; monthly[key].profit+=profit;
+  s.addsManual.forEach(r => add(r.date, r.value));
+  s.addsIntervals.forEach(r => {
+    const start = d(r.start), end = d(r.end);
+    if (end < start) return;
+    const days = Math.floor((end - start) / DAY_MS) + 1;
+    const perDay = r.intervalMode === 'per_day' ? (Number(r.total) || 0) : (Number(r.total) || 0) / days;
+    eachDay(start, end).forEach(day => add(ds(day), perDay));
+  });
+  s.autoGrowth.forEach(r => {
+    const start = d(r.start), end = d(r.end);
+    if (end < start) return;
+    eachDay(start, end).forEach(day => add(ds(day), (Number(r.usersPerMonth) || 0) / daysInMonth(day)));
+  });
+  return map;
+}
+
+function emptyScenarioRow(s) {
+  return {
+    id: s.id,
+    title: s.title,
+    calls: 0,
+    interconnectSeconds: 0,
+    revenueInterconnect: 0,
+    costSTT: 0,
+    costLLMClassification: 0,
+    costLLMDialog: 0,
+    costLLMSummary: 0,
+    costSMS: 0,
+    totalVariableCosts: 0,
+    contributionMargin: 0,
+  };
+}
+
+function runScenario(s) {
+  const errors = validateScenario(s);
+  if (errors.length) return { errors, daily: [], scenarioRows: [], pnl: null, warnings: [], kpi: null };
+
+  const c = s.constants;
+  const start = d(s.start), end = d(s.end);
+  if (end < start) return { errors: ['Дата окончания раньше даты старта.'], daily: [], scenarioRows: [], pnl: null, warnings: [], kpi: null };
+
+  // full reset each run
+  const addsByDay = buildAddsMap(s);
+  const queue = Array.from({ length: c.trial_days }, () => 0);
+  const daily = [];
+
+  const trialChurn = c.trial_churn_rate_month / 30;
+  const paidChurn = c.paid_churn_rate_month / 30;
+  const freeChurn = c.free_churn_rate_month / 30;
+  const paidToFreeRate = c.paid_to_free_rate_month / 30;
+
+  const unknownShare = c.share_l1 * c.hangup_l1 + c.share_l2 * c.hangup_l2 + c.share_l3 * c.hangup_l3 + c.share_l4 * c.hangup_l4;
+  const determinedShare = 1 - unknownShare;
+
+  let paid = 0;
+  let free = 0;
+
+  for (const day of eachDay(start, end)) {
+    const key = ds(day);
+    const dim = daysInMonth(day);
+    const diy = daysInYear(day);
+    const adds = addsByDay.get(key) || 0;
+
+    // order fixed per spec
+    queue[queue.length - 1] += adds;
+    for (let i = 0; i < queue.length; i++) queue[i] = Math.max(0, queue[i] * (1 - trialChurn));
+    const matured = queue[0] || 0;
+    for (let i = 0; i < queue.length - 1; i++) queue[i] = queue[i + 1];
+    queue[queue.length - 1] = 0;
+
+    paid += matured * c.paid_share_after_trial;
+    free += matured * c.free_share_after_trial;
+
+    const paidToFree = paid * paidToFreeRate;
+    paid -= paidToFree;
+    free += paidToFree;
+
+    paid -= paid * paidChurn;
+    free -= free * freeChurn;
+
+    s.churnEvents.filter(x => x.date === key).forEach(ev => {
+      const v = Math.max(0, Number(ev.value) || 0);
+      if (ev.group === 'paid') paid -= v;
+      if (ev.group === 'free') free -= v;
+      if (ev.group === 'trial') {
+        let rem = v;
+        for (let i = queue.length - 1; i >= 0 && rem > 0; i--) {
+          const take = Math.min(rem, queue[i]);
+          queue[i] -= take;
+          rem -= take;
+        }
+      }
+    });
+
+    paid = Math.max(0, paid);
+    free = Math.max(0, free);
+    for (let i = 0; i < queue.length; i++) queue[i] = Math.max(0, queue[i]);
+
+    const trial = queue.reduce((a, b) => a + b, 0);
+    const total = trial + paid + free;
+
+    const callsTotal = total * c.calls_per_user_per_month / dim;
+    const callsNonTm = callsTotal * c.share_calls_non_tm;
+
+    daily.push({
+      date: key,
+      month: monthKey(day),
+      adds,
+      trial,
+      paid,
+      free,
+      total,
+      callsTotal,
+      callsNonTm,
+      payrollCost: c.payroll_month / dim,
+      infraCost: c.infra_year / diy,
+      unknownShare,
+      determinedShare,
+    });
   }
 
-  const scenarios=Object.values(scenarioAgg).map(s=>{
-    const cost=s.stt+s.llm+s.sms;
-    return {...s,cost,revenuePerCall:s.calls?s.revenue/s.calls:0,costPerCall:s.calls?cost/s.calls:0,marginPerCall:s.calls?s.margin/s.calls:0};
-  });
+  const scenarioRows = SCENARIOS.map(emptyScenarioRow);
+  const byId = Object.fromEntries(scenarioRows.map(x => [x.id, x]));
 
-  return {shares,rubSec,llmReqCost,totalUnknown,totalCallsServed,totalRevenue,totalSTT,totalLLM,totalSMS,totalDelivery,totalRadius,totalTTS,totalPayroll,totalProfit,scenarios,monthly:Object.values(monthly)};
-}
+  const smsPrice = c.sms_share_mts * c.sms_cost_mts + c.sms_share_t2 * c.sms_cost_t2;
+  const llmReqPrice = (c.llm_tokens_out + c.llm_tokens_in * c.llm_input_weight) * c.llm_rub_per_1m_tokens / 1_000_000;
 
-function sensitivity(s,res){
-  const year=calculate({start:'2026-01-01',end:'2026-12-31'});
-  const callsP=res.scenarios.find(x=>x.id===s.id)?.calls||0;
-  const callsY=year.scenarios.find(x=>x.id===s.id)?.calls||0;
-  const total=n(s.wait)+n(s.out)+n(s.input);
-  const deltaBill=s.billFirst3?1:(total>3?1:0);
-  const deltaRevenue=deltaBill*res.rubSec*res.shares.revenueEligibleEff;
-  const deltaStt=s.useSTT?n(state.constants.sttSec):0;
+  for (const row of daily) {
+    const segmentCalls = {
+      trial: row.callsNonTm * (row.trial / (row.total || 1)),
+      paid: row.callsNonTm * (row.paid / (row.total || 1)),
+      free: row.callsNonTm * (row.free / (row.total || 1)),
+    };
+
+    const shares = {
+      useful: c.type_useful,
+      info_confirm: c.type_info_confirm,
+      info_notify: c.type_info_notify,
+      spam_hard: c.type_spam_hard,
+      spam_mid: c.type_spam_mid,
+      spam_light: c.type_spam_light,
+    };
+
+    for (const scenario of SCENARIOS) {
+      const baseCalls = segmentCalls[scenario.segment];
+      const unknownCalls = baseCalls * row.unknownShare;
+      const determinedCalls = baseCalls * row.determinedShare;
+
+      let calls = 0;
+      if (scenario.type === 'unknown') calls = unknownCalls;
+      else if (scenario.type === 'vip_escalation') calls = determinedCalls * shares.useful * c.paid_vip_escalation_share;
+      else calls = determinedCalls * (shares[scenario.type] || 0);
+
+      if (scenario.id === 'PAID_USEFUL') calls = determinedCalls * shares.useful * (1 - c.paid_vip_escalation_share);
+
+      const interconnectSeconds = calls * c.interconnect_seconds_per_call;
+      const revenueInterconnect = interconnectSeconds * (c.interconnect_rub_per_min / 60);
+
+      const costSTT = scenario.type === 'unknown' ? 0 : calls * c.stt_seconds_per_call * c.stt_rub_per_sec;
+      const llmClassReq = scenario.type === 'unknown' ? 0 : calls * c.share_l4;
+      const llmDialogReq = scenario.type === 'unknown' ? 0 : calls * (c.share_l3 + c.share_l4);
+      const llmSummaryReq = llmDialogReq;
+
+      const costLLMClassification = llmClassReq * llmReqPrice;
+      const costLLMDialog = llmDialogReq * llmReqPrice;
+      const costLLMSummary = llmSummaryReq * llmReqPrice;
+
+      let smsCount = 0;
+      if (scenario.type === 'unknown' && c.sms_on_unknown_hangup) smsCount = calls;
+      if (scenario.type === 'spam_light' && c.sms_on_light_spam) smsCount = calls;
+      if (['useful', 'info_confirm', 'info_notify', 'vip_escalation'].includes(scenario.type)) smsCount = calls * c.no_pickup_rate;
+      const costSMS = smsCount * smsPrice;
+
+      const totalVariableCosts = costSTT + costLLMClassification + costLLMDialog + costLLMSummary + costSMS;
+      const contributionMargin = revenueInterconnect - totalVariableCosts;
+
+      const dst = byId[scenario.id];
+      dst.calls += calls;
+      dst.interconnectSeconds += interconnectSeconds;
+      dst.revenueInterconnect += revenueInterconnect;
+      dst.costSTT += costSTT;
+      dst.costLLMClassification += costLLMClassification;
+      dst.costLLMDialog += costLLMDialog;
+      dst.costLLMSummary += costLLMSummary;
+      dst.costSMS += costSMS;
+      dst.totalVariableCosts += totalVariableCosts;
+      dst.contributionMargin += contributionMargin;
+    }
+  }
+
+  const revenueInterconnect = scenarioRows.reduce((a, r) => a + r.revenueInterconnect, 0);
+  const revenueSubscription = daily.reduce((a, r) => a + r.paid * c.subscription_price_month / daysInMonth(d(r.date)), 0);
+  const totalRevenue = revenueInterconnect + revenueSubscription;
+
+  const stt = scenarioRows.reduce((a, r) => a + r.costSTT, 0);
+  const llmClassification = scenarioRows.reduce((a, r) => a + r.costLLMClassification, 0);
+  const llmDialog = scenarioRows.reduce((a, r) => a + r.costLLMDialog, 0);
+  const llmSummary = scenarioRows.reduce((a, r) => a + r.costLLMSummary, 0);
+  const llmTotal = llmClassification + llmDialog + llmSummary;
+  const sms = scenarioRows.reduce((a, r) => a + r.costSMS, 0);
+  const tts = c.tts_enabled ? daily.reduce((a, r) => a + r.callsNonTm * c.tts_chars_per_call * c.tts_rub_per_char, 0) : 0;
+  const totalVariableCosts = stt + llmTotal + sms + tts;
+
+  const fixedPayroll = daily.reduce((a, r) => a + r.payrollCost, 0);
+  const fixedInfra = daily.reduce((a, r) => a + r.infraCost, 0);
+  const totalFixedCosts = fixedPayroll + fixedInfra;
+  const profit = totalRevenue - totalVariableCosts - totalFixedCosts;
+
+  const warnings = [];
+  const endUsers = daily.length ? daily[daily.length - 1].total : 0;
+  const avgUsers = daily.length ? daily.reduce((a, r) => a + r.total, 0) / daily.length : 0;
+  const callsPerAvgUser = avgUsers > 0 ? daily.reduce((a, r) => a + r.callsTotal, 0) / avgUsers : 0;
+  if (endUsers > c.sanity_users_threshold) warnings.push(`Пользователи на конец периода (${fmt(endUsers)}) больше порога (${fmt(c.sanity_users_threshold)}). Проверьте раскатку.`);
+  if (c.calls_per_user_per_month < 1 || c.calls_per_user_per_month > 500) warnings.push('calls_per_user_per_month вне диапазона [1..500].');
+  if (callsPerAvgUser < 4) warnings.push(`calls_total_period / avg_users_period = ${fmt(callsPerAvgUser)}. Похоже на слишком мало звонков.`);
+
+  for (const row of daily) {
+    if (row.trial < -1e-9 || row.paid < -1e-9 || row.free < -1e-9 || row.total < -1e-9) errors.push(`Отрицательные значения в ${row.date}`);
+    if (Math.abs(row.total - (row.trial + row.paid + row.free)) > 1e-6) errors.push(`Нарушен инвариант total=trial+paid+free в ${row.date}`);
+  }
+
+  const kpi = {
+    plannedAdds: Array.from(addsByDay.values()).reduce((a, b) => a + b, 0),
+    endUsers,
+    avgUsers,
+  };
+
   return {
-    wait:{period:callsP*deltaRevenue,year:callsY*deltaRevenue},
-    out:{period:callsP*deltaRevenue,year:callsY*deltaRevenue},
-    input:{period:callsP*(deltaRevenue-deltaStt),year:callsY*(deltaRevenue-deltaStt)}
+    errors,
+    warnings,
+    daily,
+    scenarioRows,
+    kpi,
+    pnl: {
+      revenueInterconnect,
+      revenueSubscription,
+      totalRevenue,
+      stt,
+      llmClassification,
+      llmDialog,
+      llmSummary,
+      llmTotal,
+      sms,
+      tts,
+      totalVariableCosts,
+      fixedPayroll,
+      fixedInfra,
+      totalFixedCosts,
+      profit,
+    },
   };
 }
 
-const tabs=[
-  ['period','Период и база'],
-  ['distribution','Распределение незнакомых звонков'],
-  ['scenarios','Сценарии'],
-  ['segments','Сегменты / ограничения выручки'],
-  ['constants','Константы и расходы'],
-  ['results','Результаты']
-];
-
-function info(text){ return `<button class='info' onclick="openModal('Пояснение',${JSON.stringify(text)})">i</button>`; }
-function renderTabs(){ document.getElementById('tabs').innerHTML=tabs.map(([k,nm])=>`<button class='${state.tab===k?'active':''}' onclick="state.tab='${k}';render()">${nm}</button>`).join(''); }
-function openModal(title,body){ document.getElementById('modalTitle').textContent=title; document.getElementById('modalBody').textContent=body; document.getElementById('modalBg').style.display='flex'; }
-function closeModal(){ document.getElementById('modalBg').style.display='none'; }
-
-function renderPeriod(){
-  return `<div class='panel'><h3>Период расчета</h3><div class='grid3'>
-  <label>Дата начала<input type='date' value='${state.period.start}' onchange="state.period.start=this.value;render()"></label>
-  <label>Дата конца<input type='date' value='${state.period.end}' onchange="state.period.end=this.value;render()"></label>
-  <label>Часовой пояс<input value='${state.period.timezone}' disabled></label>
-  </div></div>
-  <div class='panel'><h3>Таймлайн обслуживаемой базы ${info(help.база)}</h3>
-  <table><tr><th>Дата</th><th>Обслуживаемая база, пользователей</th><th></th></tr>
-  ${state.rollout.userTimepoints.map((p,i)=>`<tr><td><input type='date' value='${p.date}' onchange='state.rollout.userTimepoints[${i}].date=this.value;render()'></td><td><input type='number' value='${p.users}' onchange='state.rollout.userTimepoints[${i}].users=parseFloat(this.value)||0;render()'></td><td><button onclick='state.rollout.userTimepoints.splice(${i},1);render()'>Удалить</button></td></tr>`).join('')}
-  </table><button onclick="state.rollout.userTimepoints.push({date:state.period.start,users:0});render()">Добавить точку</button></div>`;
+function sliceResult(result, mode, month) {
+  if (mode === 'year') return result;
+  const rows = result.daily.filter(r => r.month === month);
+  if (!rows.length) {
+    return {
+      ...result,
+      daily: [],
+      scenarioRows: result.scenarioRows.map(x => ({
+        ...x,
+        calls: 0,
+        interconnectSeconds: 0,
+        revenueInterconnect: 0,
+        costSTT: 0,
+        costLLMClassification: 0,
+        costLLMDialog: 0,
+        costLLMSummary: 0,
+        costSMS: 0,
+        totalVariableCosts: 0,
+        contributionMargin: 0,
+      })),
+      pnl: {
+        ...result.pnl,
+        revenueInterconnect: 0,
+        revenueSubscription: 0,
+        totalRevenue: 0,
+        stt: 0,
+        llmClassification: 0,
+        llmDialog: 0,
+        llmSummary: 0,
+        llmTotal: 0,
+        sms: 0,
+        tts: 0,
+        totalVariableCosts: 0,
+        fixedPayroll: 0,
+        fixedInfra: 0,
+        totalFixedCosts: 0,
+        profit: 0,
+      },
+    };
+  }
+  const tmp = structuredClone(selected());
+  tmp.start = rows[0].date;
+  tmp.end = rows[rows.length - 1].date;
+  return runScenario(tmp);
 }
 
-function renderDistribution(){
-  const avg=avgUnknownCallsPerUserPerDay();
-  const last=[...state.rollout.userTimepoints].sort((a,b)=>a.date.localeCompare(b.date)).at(-1);
-  const callsAtLast=(last?n(last.users):0)*avg;
-  return `<div class='panel'><h3>Распределение незнакомых звонков ${info(help.распределение)}</h3>
-  <table><tr><th>Корзина</th><th>Доля пользователей, %</th><th>Звонков на пользователя за период</th><th>Длина периода, дней</th><th></th></tr>
-  ${state.distributionBuckets.map((b,i)=>`<tr><td><input value='${b.bucket}' onchange='state.distributionBuckets[${i}].bucket=this.value;render()'></td><td><input type='number' step='0.01' value='${b.percent}' onchange='state.distributionBuckets[${i}].percent=parseFloat(this.value)||0;render()'></td><td><input type='number' step='0.01' value='${b.calls}' onchange='state.distributionBuckets[${i}].calls=parseFloat(this.value)||0;render()'></td><td><input type='number' step='0.1' value='${b.days}' onchange='state.distributionBuckets[${i}].days=parseFloat(this.value)||0;render()'></td><td><button onclick='state.distributionBuckets.splice(${i},1);render()'>Удалить</button></td></tr>`).join('')}
-  </table><button onclick="state.distributionBuckets.push({bucket:'новая',percent:0,calls:0,days:30});render()">Добавить корзину</button>
-  <p><b>Среднее незнакомых звонков на пользователя в день: ${fmt(avg)}</b></p>
-  <p><b>Незнакомых звонков в день для последней точки базы (${last?last.date:'-'}) : ${fmt(callsAtLast)}</b></p>
-  </div>`;
+const formulaCache = new Map();
+function putFormula(key, title, steps) {
+  formulaCache.set(key, { title, steps });
+}
+function clickable(key, value, title, steps) {
+  putFormula(key, title, steps);
+  return `<span class="click" onclick="openFormula('${key}')">${fmt(value)}</span>`;
+}
+function openFormula(key) {
+  const f = formulaCache.get(key);
+  if (!f) return;
+  document.getElementById('formulaTitle').textContent = f.title;
+  document.getElementById('formulaBody').innerHTML = `<div class="panel">${f.steps.map((x, i) => `<div style='margin:4px 0'><b>Шаг ${i+1}.</b> ${x}</div>`).join('')}</div>`;
+  document.getElementById('formulaBg').style.display = 'flex';
+}
+function closeFormula() { document.getElementById('formulaBg').style.display = 'none'; }
+
+function renderTabs() {
+  const tabs = [
+    ['variants', 'Варианты'],
+    ['editor', 'Редактор'],
+    ['results', 'Сводка по сценариям'],
+    ['compare', 'Сравнение'],
+    ['stress', 'Стресс-тесты'],
+  ];
+  document.getElementById('tabs').innerHTML = tabs.map(([id, label]) => `<button class="${state.tab===id?'active':''}" onclick="setTab('${id}')">${label}</button>`).join('');
+}
+function setTab(tab) { state.tab = tab; render(); }
+
+function renderVariants() {
+  return `<div class="panel"><div class="row">
+    <button class="primary" onclick="addScenario()">Создать</button>
+    <button onclick="cloneScenario()">Клонировать</button>
+    <button onclick="deleteScenario()">Удалить</button>
+  </div>
+  <table><thead><tr><th>Выбор</th><th>Имя</th><th>Комментарий</th><th>Период</th></tr></thead><tbody>
+    ${state.scenarios.map(s => `<tr><td><input type="radio" name="sel" ${s.id===state.selectedId?'checked':''} onclick="pick('${s.id}')"></td><td>${s.name}</td><td>${s.comment||''}</td><td>${s.start} → ${s.end}</td></tr>`).join('')}
+  </tbody></table></div>`;
 }
 
-function renderScenarios(){
-  const sum=state.scenarios.reduce((a,s)=>a+(s.enabled?n(s.sharePercent):0),0);
-  return `<div class='panel'><div class='row'><h3>Сценарии ${info(help.доля)}</h3><button onclick='state.scenarios=currentPreset();render()'>Загрузить пресет Как сейчас</button><button onclick='normalizeShares(state.scenarios);render()'>Нормализовать доли до 100%</button></div>
-  <p><b>Сумма долей включенных сценариев = ${fmt(sum)}%</b></p>
-  <table><tr><th>Сценарий</th><th>Включен</th><th>Доля от незнакомых звонков, %</th><th>Ожидание, сек</th><th>Исходящая речь, сек</th><th>Входящая речь, сек</th><th>Первые 3 секунды тарифицируются?</th><th>STT включено?</th><th>LLM включено?</th><th>Запросов в LLM на 1 звонок</th><th>SMS отправляем?</th><th>Правило SMS</th></tr>
-  ${state.scenarios.map((s,i)=>`<tr><td>${s.name}</td><td><input type='checkbox' ${s.enabled?'checked':''} onchange='state.scenarios[${i}].enabled=this.checked;render()'></td><td><input type='number' step='0.001' value='${s.sharePercent}' onchange='state.scenarios[${i}].sharePercent=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.wait}' onchange='state.scenarios[${i}].wait=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.out}' onchange='state.scenarios[${i}].out=parseFloat(this.value)||0;render()'></td><td><input type='number' value='${s.input}' onchange='state.scenarios[${i}].input=parseFloat(this.value)||0;render()'></td><td><input type='checkbox' ${s.billFirst3?'checked':''} onchange='state.scenarios[${i}].billFirst3=this.checked;render()'></td><td><input type='checkbox' ${s.useSTT?'checked':''} onchange='state.scenarios[${i}].useSTT=this.checked;render()'></td><td><input type='checkbox' ${s.useLLM?'checked':''} onchange='state.scenarios[${i}].useLLM=this.checked;render()'></td><td><input type='number' step='0.01' value='${s.llmReq}' onchange='state.scenarios[${i}].llmReq=parseFloat(this.value)||0;render()'></td><td><input type='checkbox' ${s.useSMS?'checked':''} onchange='state.scenarios[${i}].useSMS=this.checked;render()'></td><td><select onchange='state.scenarios[${i}].smsRule=this.value;render()'>${['нет','всегда','только лайк-спам (доля X)','нет первой фразы','не успели определить / повесили трубку'].map(v=>`<option ${s.smsRule===v?'selected':''}>${v}</option>`).join('')}</select></td></tr>`).join('')}
-  </table></div>`;
+function renderArrayEditor(title, rows, cols, kind) {
+  return `<div class="panel"><h3>${title}</h3>
+    <table><thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}<th></th></tr></thead><tbody>
+    ${rows.map((r,i)=>`<tr>${cols.map(c=>`<td>${c==='group'
+      ? `<select onchange="setCell('${kind}',${i},'${c}',this.value)"><option ${r[c]==='trial'?'selected':''}>trial</option><option ${r[c]==='paid'?'selected':''}>paid</option><option ${r[c]==='free'?'selected':''}>free</option></select>`
+      : c==='intervalMode'
+        ? `<select onchange="setCell('${kind}',${i},'${c}',this.value)"><option value='total' ${r[c]==='total'?'selected':''}>total</option><option value='per_day' ${r[c]==='per_day'?'selected':''}>per_day</option></select>`
+        : `<input ${(c==='date'||c==='start'||c==='end')?'type="date"':''} value="${r[c]??''}" onchange="setCell('${kind}',${i},'${c}',this.value)">`}</td>`).join('')}<td><button onclick="delRow('${kind}',${i})">x</button></td></tr>`).join('')}
+    </tbody></table></div>`;
 }
 
-function renderSegments(){
-  const s=segmentShares();
-  return `<div class='panel'><h3>Сегменты и ограничения выручки ${info(help.сегменты)}</h3>
-  <table><tr><th>Абонент дома? (1/0)</th><th>Внутри сети? (1/0)</th><th>Звонок из домашнего региона? (1/0)</th><th>Количество звонков</th></tr>
-  ${state.segments.rows.map((r,i)=>`<tr><td><input type='number' value='${r.home_flag}' onchange='state.segments.rows[${i}].home_flag=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.same_fact}' onchange='state.segments.rows[${i}].same_fact=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.from_home}' onchange='state.segments.rows[${i}].from_home=parseInt(this.value)||0;render()'></td><td><input type='number' value='${r.count}' onchange='state.segments.rows[${i}].count=parseFloat(this.value)||0;render()'></td></tr>`).join('')}
-  </table>
-  <p>Доля не дома: <b>${fmt(s.notHome)}</b></p>
-  <p>Доля внутри сети: <b>${fmt(s.sameFact)}</b></p>
-  <p>Доля с выручкой (1 - доля внутри сети): <b>${fmt(s.revenueEligible)}</b></p>
-  <div class='row'>
-    <label><input type='checkbox' ${state.segments.overrideNotHome?'checked':''} onchange='state.segments.overrideNotHome=this.checked;render()'> Переопределить долю не дома вручную</label>
-    <input type='number' step='0.0001' value='${state.segments.overrideNotHomeValue}' onchange='state.segments.overrideNotHomeValue=parseFloat(this.value)||0;render()'>
-    <label><input type='checkbox' ${state.segments.overrideRevenueEligible?'checked':''} onchange='state.segments.overrideRevenueEligible=this.checked;render()'> Переопределить долю выручки вручную</label>
-    <input type='number' step='0.0001' value='${state.segments.overrideRevenueEligibleValue}' onchange='state.segments.overrideRevenueEligibleValue=parseFloat(this.value)||0;render()'>
+function renderConstants(c) {
+  return `<div class="panel"><h3>Константы</h3><div class="grid4">
+    ${Object.entries(c).map(([k,v])=>`<label>${k}<input value="${v}" onchange="setConst('${k}',this.value)"></label>`).join('')}
   </div></div>`;
 }
 
-function renderConstants(){
-  const c=state.constants;
-  return `<div class='panel'><h3>Константы выручки и расходов ${info(help.tts)}</h3><div class='grid3'>
-  <label>Интерконнект, руб/мин<input type='number' step='0.0001' value='${c.interconnectMin}' onchange='state.constants.interconnectMin=parseFloat(this.value)||0;render()'></label>
-  <label>Интерконнект, руб/сек<input disabled value='${fmt(n(c.interconnectMin)/60)}'></label>
-  <label>Стоимость распознавания, руб/сек<input type='number' step='0.0001' value='${c.sttSec}' onchange='state.constants.sttSec=parseFloat(this.value)||0;render()'></label>
-  <label>Цена LLM, руб / 1 000 000 токенов<input type='number' value='${c.llmPer1M}' onchange='state.constants.llmPer1M=parseFloat(this.value)||0;render()'></label>
-  <label>Исходящих токенов на запрос<input type='number' value='${c.llmOut}' onchange='state.constants.llmOut=parseFloat(this.value)||0;render()'></label>
-  <label>Входящих токенов на запрос<input type='number' value='${c.llmIn}' onchange='state.constants.llmIn=parseFloat(this.value)||0;render()'></label>
-  <label>Вес входящих токенов<input type='number' value='${c.llmInWeight}' onchange='state.constants.llmInWeight=parseFloat(this.value)||0;render()'></label>
-  <label>Стоимость 1 запроса LLM<input disabled value='${money(llmCostPerRequest())}'></label>
-  <label>Стоимость синтеза, руб/символ<input type='number' step='0.0001' value='${c.ttsChar}' onchange='state.constants.ttsChar=parseFloat(this.value)||0;render()'></label>
-  <label>Уникальных фраз в год<input type='number' value='${c.ttsPhrasesYear}' onchange='state.constants.ttsPhrasesYear=parseFloat(this.value)||0;render()'></label>
-  <label>Среднее символов в фразе<input type='number' value='${c.ttsChars}' onchange='state.constants.ttsChars=parseFloat(this.value)||0;render()'></label>
-  <label>Цена SMS, руб<input type='number' step='0.0001' value='${c.smsPrice}' onchange='state.constants.smsPrice=parseFloat(this.value)||0;render()'></label>
-  <label>Доля лайк-спама для SMS<input type='number' step='0.0001' value='${c.smsLikeSpamShare}' onchange='state.constants.smsLikeSpamShare=parseFloat(this.value)||0;render()'></label>
-  <label>Delivery Regions, руб/звонок<input type='number' step='0.0001' value='${c.deliveryPrice}' onchange='state.constants.deliveryPrice=parseFloat(this.value)||0;render()'></label>
-  <label>Тариф Radius, МТС, руб/мин<input type='number' step='0.0001' value='${c.radiusMts}' onchange='state.constants.radiusMts=parseFloat(this.value)||0;render()'></label>
-  <label>Тариф Radius, T2, руб/мин<input type='number' step='0.0001' value='${c.radiusT2}' onchange='state.constants.radiusT2=parseFloat(this.value)||0;render()'></label>
-  <label>Доля МТС<input type='number' step='0.0001' value='${c.shareMts}' onchange='state.constants.shareMts=parseFloat(this.value)||0;render()'></label>
-  <label>Средняя длительность radio, минут<select onchange='state.constants.radioMode=this.value;render()'><option ${c.radioMode==='ввести вручную'?'selected':''}>ввести вручную</option><option ${c.radioMode==='считать из распределения'?'selected':''}>считать из распределения</option></select></label>
-  <label>Вручную: минут на звонок<input type='number' step='0.0001' value='${c.avgRadioManual}' onchange='state.constants.avgRadioManual=parseFloat(this.value)||0;render()'></label>
+function renderEditor() {
+  const s = selected();
+  const res = runScenario(s);
+  return `<div class="panel">
+    <div class="grid4">
+      <label>Имя<input value="${s.name}" onchange="upd('name',this.value)"></label>
+      <label>Старт<input type="date" value="${s.start}" onchange="upd('start',this.value)"></label>
+      <label>Конец<input type="date" value="${s.end}" onchange="upd('end',this.value)"></label>
+      <label>Комментарий<textarea onchange="upd('comment',this.value)">${s.comment||''}</textarea></label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="addManual()">+ ручная</button>
+      <button onclick="addInterval()">+ интервал</button>
+      <button onclick="addAuto()">+ авто-рост</button>
+      <button onclick="addChurnEvent()">+ отключение</button>
+      <button onclick="resetRolloutToDefaults()">Сбросить раскатку к вашим дефолтам</button>
+    </div>
+    <p class="muted">Интервалы: total = всего за интервал, per_day = каждый день указанное количество.</p>
+    <div class="kpi">
+      <div class="card"><b>Вы выставили пользователей (сумма adds):</b><br>${fmt(res.kpi?.plannedAdds||0)}</div>
+      <div class="card"><b>Ожидаемо на конец периода (с churn):</b><br>${fmt(res.kpi?.endUsers||0)}</div>
+      <div class="card"><b>Среднее число пользователей за период:</b><br>${fmt(res.kpi?.avgUsers||0)}</div>
+    </div>
+    ${res.errors.length ? `<div class="err">${res.errors.join('<br>')}</div>` : ''}
+    ${res.warnings.map(w=>`<div class="warn">${w}</div>`).join('')}
   </div>
-  <h4>Распределение radio (если выбран режим расчета из распределения)</h4>
-  <table><tr><th>Минут на звонок</th><th>Количество</th><th></th></tr>${c.radioDist.map((r,i)=>`<tr><td><input type='number' step='0.01' value='${r.minutes}' onchange='state.constants.radioDist[${i}].minutes=parseFloat(this.value)||0;render()'></td><td><input type='number' step='0.01' value='${r.cnt}' onchange='state.constants.radioDist[${i}].cnt=parseFloat(this.value)||0;render()'></td><td><button onclick='state.constants.radioDist.splice(${i},1);render()'>Удалить</button></td></tr>`).join('')}</table>
-  <button onclick="state.constants.radioDist.push({minutes:1,cnt:1});render()">Добавить строку</button>
-  <h4>ФОТ по месяцам, руб</h4><div class='grid3'>${state.payroll.map((v,i)=>`<label>${i+1}<input type='number' value='${v}' onchange='state.payroll[${i}]=parseFloat(this.value)||0;render()'></label>`).join('')}</div>
+  ${renderArrayEditor('Ручные adds', s.addsManual, ['date', 'value'], 'manual')}
+  ${renderArrayEditor('Интервалы adds', s.addsIntervals, ['start', 'end', 'intervalMode', 'total'], 'interval')}
+  ${renderArrayEditor('Авто-рост', s.autoGrowth, ['start', 'end', 'usersPerMonth'], 'auto')}
+  ${renderArrayEditor('Отключения', s.churnEvents, ['date', 'group', 'value'], 'churn')}
+  ${renderConstants(s.constants)}`;
+}
+
+function renderScenarioBlock(s, result, prefix) {
+  const p = result.pnl;
+  const key = (x) => `${prefix}:${x}`;
+  return `<div class="panel"><h3>${s.name}</h3>${s.comment?`<div class="muted">${s.comment}</div>`:''}
+    ${result.warnings.map(w=>`<div class="warn">${w}</div>`).join('')}
+    <h4>Сводка по сценариям (демо/платная/бесплатная)</h4>
+    <table><thead><tr><th>ID</th><th>Сценарий</th><th>Calls</th><th>Interconnect sec</th><th>Revenue Interconnect</th><th>Cost STT</th><th>Cost LLM class</th><th>Cost LLM dialog</th><th>Cost LLM summary</th><th>Cost SMS</th><th>Total variable costs</th><th>Contribution margin</th></tr></thead><tbody>
+      ${result.scenarioRows.map((r,idx)=>`<tr>
+        <td>${r.id}</td>
+        <td>${r.title}</td>
+        <td>${clickable(key(`sc_calls_${idx}`), r.calls, `${r.title}: Calls`, [`Берем звонки сегмента (${r.title.includes('Демо')?'trial':'paid/free'}) и умножаем на долю типа сценария.`, `Итог calls = ${fmt(r.calls)}.`])}</td>
+        <td>${clickable(key(`sc_sec_${idx}`), r.interconnectSeconds, `${r.title}: Interconnect seconds`, [`interconnect_seconds = calls * interconnect_seconds_per_call`, `${fmt(r.calls)} * ${fmt(s.constants.interconnect_seconds_per_call)} = ${fmt(r.interconnectSeconds)}.`])}</td>
+        <td>${clickable(key(`sc_rev_${idx}`), r.revenueInterconnect, `${r.title}: Revenue Interconnect`, ['Интерконнект считается по формуле: кол-во секунд в сценарии * 0,93 руб/мин / 60 сек.', `То есть: ${fmt(r.interconnectSeconds)} * 0,93 / 60 = ${fmt(r.revenueInterconnect)} руб.`])}</td>
+        <td>${clickable(key(`sc_stt_${idx}`), r.costSTT, `${r.title}: STT`, [`stt_cost = calls * stt_seconds_per_call * stt_rub_per_sec`, `${fmt(r.calls)} * ${fmt(s.constants.stt_seconds_per_call)} * ${fmt(s.constants.stt_rub_per_sec)} = ${fmt(r.costSTT)}.`])}</td>
+        <td>${clickable(key(`sc_lc_${idx}`), r.costLLMClassification, `${r.title}: LLM classification`, [`llm_class = class_requests * price_per_request`, `Итог = ${fmt(r.costLLMClassification)}.`])}</td>
+        <td>${clickable(key(`sc_ld_${idx}`), r.costLLMDialog, `${r.title}: LLM dialog`, [`llm_dialog = dialog_requests * price_per_request`, `Итог = ${fmt(r.costLLMDialog)}.`])}</td>
+        <td>${clickable(key(`sc_ls_${idx}`), r.costLLMSummary, `${r.title}: LLM summary`, [`llm_summary = summary_requests * price_per_request`, `Итог = ${fmt(r.costLLMSummary)}.`])}</td>
+        <td>${clickable(key(`sc_sms_${idx}`), r.costSMS, `${r.title}: SMS`, [`sms_cost = sms_count * sms_cost_per_sms`, `Итог = ${fmt(r.costSMS)}.`])}</td>
+        <td>${clickable(key(`sc_tv_${idx}`), r.totalVariableCosts, `${r.title}: Total variable costs`, [`Складываем STT + LLM class + LLM dialog + LLM summary + SMS.`, `${fmt(r.totalVariableCosts)}.`])}</td>
+        <td>${clickable(key(`sc_cm_${idx}`), r.contributionMargin, `${r.title}: Contribution margin`, [`contribution_margin = revenue_interconnect - total_variable_costs`, `${fmt(r.revenueInterconnect)} - ${fmt(r.totalVariableCosts)} = ${fmt(r.contributionMargin)}.`])}</td>
+      </tr>`).join('')}
+    </tbody></table>
+
+    <h4>Итоговый P&L за период</h4>
+    <table><tbody>
+      <tr><th>Revenue Interconnect</th><td>${clickable(key('rev_i'), p.revenueInterconnect, 'Revenue Interconnect', ['По каждому сценарию считаем: секунды_сценария * 0,93 / 60. Затем суммируем по всем сценариям.', `Итоговая выручка Interconnect = ${fmt(p.revenueInterconnect)} руб.`])}</td></tr>
+      <tr><th>Revenue Subscription</th><td>${clickable(key('rev_s'), p.revenueSubscription, 'Revenue Subscription', ['По каждому дню: paid[d] * 49 / days_in_month(d).', `Сумма по периоду = ${fmt(p.revenueSubscription)}.`])}</td></tr>
+      <tr><th><b>Total Revenue</b></th><td><b>${clickable(key('rev_t'), p.totalRevenue, 'Total Revenue', ['Складываем Revenue Interconnect и Revenue Subscription.', `${fmt(p.revenueInterconnect)} + ${fmt(p.revenueSubscription)} = ${fmt(p.totalRevenue)}.`])}</b></td></tr>
+
+      <tr><th>STT</th><td>${clickable(key('c_stt'), p.stt, 'STT', ['Суммируем STT по всем сценариям.', `Итог = ${fmt(p.stt)}.`])}</td></tr>
+      <tr><th>LLM classification</th><td>${clickable(key('c_lc'), p.llmClassification, 'LLM classification', ['Суммируем LLM classification по всем сценариям.', `Итог = ${fmt(p.llmClassification)}.`])}</td></tr>
+      <tr><th>LLM dialog</th><td>${clickable(key('c_ld'), p.llmDialog, 'LLM dialog', ['Суммируем LLM dialog по всем сценариям.', `Итог = ${fmt(p.llmDialog)}.`])}</td></tr>
+      <tr><th>LLM summary</th><td>${clickable(key('c_ls'), p.llmSummary, 'LLM summary', ['Суммируем LLM summary по всем сценариям.', `Итог = ${fmt(p.llmSummary)}.`])}</td></tr>
+      <tr><th>LLM total</th><td>${clickable(key('c_lt'), p.llmTotal, 'LLM total', ['llm_total = classification + dialog + summary.', `${fmt(p.llmClassification)} + ${fmt(p.llmDialog)} + ${fmt(p.llmSummary)} = ${fmt(p.llmTotal)}.`])}</td></tr>
+      <tr><th>SMS</th><td>${clickable(key('c_sms'), p.sms, 'SMS', ['Суммируем SMS по всем сценариям.', `Итог = ${fmt(p.sms)}.`])}</td></tr>
+      <tr><th>TTS</th><td>${clickable(key('c_tts'), p.tts, 'TTS', ['Если tts_enabled=true: calls_non_tm * chars_per_call * rub_per_char.', `Итог = ${fmt(p.tts)}.`])}</td></tr>
+      <tr><th><b>Total Variable Costs</b></th><td><b>${clickable(key('c_tv'), p.totalVariableCosts, 'Total Variable Costs', ['Складываем STT + LLM total + SMS + TTS.', `${fmt(p.stt)} + ${fmt(p.llmTotal)} + ${fmt(p.sms)} + ${fmt(p.tts)} = ${fmt(p.totalVariableCosts)}.`])}</b></td></tr>
+
+      <tr><th>ФОТ</th><td>${clickable(key('f_pay'), p.fixedPayroll, 'ФОТ', ['Ежедневно: payroll_month / days_in_month(d).', `Сумма за период = ${fmt(p.fixedPayroll)}.`])}</td></tr>
+      <tr><th>Инфраструктура</th><td>${clickable(key('f_inf'), p.fixedInfra, 'Инфраструктура', ['Ежедневно: infra_year / days_in_year(d).', `Сумма за период = ${fmt(p.fixedInfra)}.`])}</td></tr>
+      <tr><th><b>Total Fixed Costs</b></th><td><b>${clickable(key('f_t'), p.totalFixedCosts, 'Total Fixed Costs', ['fixed_total = ФОТ + Инфраструктура.', `${fmt(p.fixedPayroll)} + ${fmt(p.fixedInfra)} = ${fmt(p.totalFixedCosts)}.`])}</b></td></tr>
+
+      <tr><th><b>Profit</b></th><td><b>${clickable(key('profit'), p.profit, 'Profit', ['profit = total_revenue - total_variable_costs - total_fixed_costs.', `${fmt(p.totalRevenue)} - ${fmt(p.totalVariableCosts)} - ${fmt(p.totalFixedCosts)} = ${fmt(p.profit)}.`])}</b></td></tr>
+    </tbody></table>
   </div>`;
 }
 
-function toCsv(res){
-  const a=['Сценарии','Сценарий,Звонки,Выручка,STT,LLM,SMS количество,SMS,Маржа,Выручка на звонок,Себестоимость на звонок,Маржа на звонок'];
-  res.scenarios.forEach(s=>a.push(`${s.name},${s.calls},${s.revenue},${s.stt},${s.llm},${s.smsCount},${s.sms},${s.margin},${s.revenuePerCall},${s.costPerCall},${s.marginPerCall}`));
-  a.push(''); a.push('Месяцы'); a.push('Месяц,Звонки,Выручка,STT,LLM,SMS,Delivery,Radius,TTS,ФОТ,Прибыль');
-  res.monthly.forEach(m=>a.push(`${m.month},${m.calls},${m.revenue},${m.stt},${m.llm},${m.sms},${m.delivery},${m.radius},${m.tts},${m.payroll},${m.profit}`));
-  return a.join('\n');
-}
-function download(name,body,type){const el=document.createElement('a');el.href=URL.createObjectURL(new Blob([body],{type}));el.download=name;el.click();}
-
-function drawChart(monthly){
-  if(!monthly.length) return '';
-  const w=860,h=200,p=24; const vals=monthly.map(x=>x.profit); const min=Math.min(...vals), max=Math.max(...vals); const span=(max-min)||1;
-  const pts=monthly.map((m,i)=>`${p+i*(w-2*p)/Math.max(1,monthly.length-1)},${h-p-(m.profit-min)*(h-2*p)/span}`).join(' ');
-  return `<svg class='chart' viewBox='0 0 ${w} ${h}'><polyline fill='none' stroke='#2563eb' stroke-width='2' points='${pts}'/></svg>`;
-}
-
-function renderResults(){
-  const r=calculate();
-  const variable=r.totalSTT+r.totalLLM+r.totalSMS+r.totalDelivery+r.totalRadius+r.totalTTS;
-  return `<div class='panel'><h3>Итог по периоду</h3>
-  <div class='kpi'>
-    <div class='card'><div class='small'>Звонков с незнакомых номеров</div><b>${fmt(r.totalUnknown)}</b></div>
-    <div class='card'><div class='small'>Выручка</div><b class='click' onclick="openModal('Выручка','Формула по сценарию: звонки * тарифицируемые секунды * (интерконнект/60) * доля выручки. Сумма по всем сценариям и дням.\nРезультат: ${money(r.totalRevenue)}')">${money(r.totalRevenue)}</b></div>
-    <div class='card'><div class='small'>Переменные расходы</div><b class='click' onclick="openModal('Переменные расходы','STT + LLM + SMS + Delivery + Radius + TTS = ${money(variable)}')">${money(variable)}</b></div>
-    <div class='card'><div class='small'>ФОТ</div><b class='click' onclick="openModal('ФОТ','Сумма дневного ФОТ по календарю месяцев: ${money(r.totalPayroll)}')">${money(r.totalPayroll)}</b></div>
-    <div class='card'><div class='small'>Прибыль</div><b class='click' onclick="openModal('Прибыль','Прибыль = Выручка - переменные расходы - ФОТ = ${money(r.totalProfit)}')">${money(r.totalProfit)}</b></div>
+function renderResults() {
+  formulaCache.clear();
+  const picked = state.scenarios.filter(s => state.scenarioIdsInSummary.includes(s.id));
+  return `<div class="panel"><div class="row">
+      <label style="width:180px">Режим<select onchange="setMode(this.value)"><option value="year" ${state.mode==='year'?'selected':''}>За период</option><option value="month" ${state.mode==='month'?'selected':''}>За месяц</option></select></label>
+      ${state.mode==='month' ? `<label style="width:180px">Месяц<input type="month" value="${state.month}" onchange="setMonth(this.value)"></label>` : ''}
+    </div>
+    <div class="row">${state.scenarios.map(s => `<label><input type="checkbox" ${state.scenarioIdsInSummary.includes(s.id)?'checked':''} onchange="toggleSummaryScenario('${s.id}',this.checked)"> ${s.name}</label>`).join('')}</div>
   </div>
-  <div class='row' style='margin-top:8px'>
-    <button onclick='download("результаты.json",JSON.stringify({period:state.period,usersTimeline:state.rollout.userTimepoints,distribution:state.distributionBuckets,segments:state.segments,scenarios:state.scenarios,constants:state.constants,payroll:state.payroll,results:calculate()},null,2),"application/json")'>Экспорт JSON</button>
-    <button onclick='download("результаты.csv",toCsv(calculate()),"text/csv")'>Экспорт CSV</button>
-  </div></div>
-
-  <div class='panel'><h3>Юнит-экономика по сценариям</h3>
-  <table><tr><th>Сценарий</th><th>Звонки</th><th>Выручка</th><th>STT</th><th>LLM</th><th>SMS количество</th><th>SMS</th><th>Маржа</th><th>Выручка на звонок</th><th>Себестоимость на звонок</th><th>Маржа на звонок</th><th>Цена +1 секунды</th></tr>
-  ${r.scenarios.map(s=>{const base=state.scenarios.find(x=>x.id===s.id); const sen=sensitivity(base,r); return `<tr><td>${s.name}</td><td>${fmt(s.calls)}</td><td class='click' onclick="openModal('Детали выручки - ${s.name}','Формула: звонки * тарифицируемые секунды * руб/сек * доля выручки.\nПодстановка: ${fmt(s.calls)} * ${fmt(s.billable)} * ${fmt(r.rubSec)} * ${fmt(r.shares.revenueEligibleEff)} = ${money(s.revenue)}')">${money(s.revenue)}</td><td>${money(s.stt)}</td><td>${money(s.llm)}</td><td>${fmt(s.smsCount)}</td><td>${money(s.sms)}</td><td>${money(s.margin)}</td><td>${money(s.revenuePerCall)}</td><td>${money(s.costPerCall)}</td><td>${money(s.marginPerCall)}</td><td><span class='click' onclick="openModal('Цена +1 секунды - ${s.name}','+1 сек ожидания: период ${money(sen.wait.period)}, год ${money(sen.wait.year)}\n+1 сек исходящей: период ${money(sen.out.period)}, год ${money(sen.out.year)}\n+1 сек входящей: период ${money(sen.input.period)}, год ${money(sen.input.year)}\nПочему: +1 сек может увеличить тарифицируемое время; для входящей еще добавляется STT.')">подробно</span></td></tr>`;}).join('')}
-  </table></div>
-
-  <div class='panel'><h3>Итоги по месяцам</h3>${drawChart(r.monthly)}
-  <table><tr><th>Месяц</th><th>Звонки</th><th>Выручка</th><th>STT</th><th>LLM</th><th>SMS</th><th>Delivery</th><th>Radius</th><th>TTS</th><th>ФОТ</th><th>Прибыль</th></tr>
-  ${r.monthly.map(m=>`<tr><td>${m.month}</td><td>${fmt(m.calls)}</td><td>${money(m.revenue)}</td><td>${money(m.stt)}</td><td>${money(m.llm)}</td><td>${money(m.sms)}</td><td>${money(m.delivery)}</td><td>${money(m.radius)}</td><td>${money(m.tts)}</td><td>${money(m.payroll)}</td><td>${money(m.profit)}</td></tr>`).join('')}
-  </table></div>`;
+  ${picked.map((s, idx) => {
+    const res = sliceResult(runScenario(s), state.mode, state.month);
+    if (res.errors.length) return `<div class="panel err">${s.name}: ${res.errors.join('; ')}</div>`;
+    return renderScenarioBlock(s, res, `sc${idx}`);
+  }).join('')}`;
 }
 
-function render(){
+function compareRows() {
+  const selectedVariants = state.scenarios.filter(s => state.compareIds.includes(s.id));
+  if (selectedVariants.length < 2) return [];
+  const base = sliceResult(runScenario(selectedVariants[0]), state.mode, state.month).pnl;
+  return selectedVariants.map(s => {
+    const p = sliceResult(runScenario(s), state.mode, state.month).pnl;
+    const pct = base.profit === 0 ? 0 : (p.profit - base.profit) / base.profit * 100;
+    return { variant: s.name, revenue: p.totalRevenue, variable: p.totalVariableCosts, fixed: p.totalFixedCosts, profit: p.profit, dAbs: p.profit - base.profit, dPct: pct };
+  });
+}
+
+function renderCompare() {
+  const rows = compareRows();
+  return `<div class="panel"><div class="row">${state.scenarios.map(s => `<label><input type="checkbox" ${state.compareIds.includes(s.id)?'checked':''} onchange="toggleCompare('${s.id}',this.checked)"> ${s.name}</label>`).join('')}</div>
+    <table><thead><tr><th>Вариант</th><th>Total Revenue</th><th>Total Variable Costs</th><th>Total Fixed Costs</th><th>Profit</th><th>ΔProfit</th><th>ΔProfit %</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td>${r.variant}</td><td>${fmt(r.revenue)}</td><td>${fmt(r.variable)}</td><td>${fmt(r.fixed)}</td><td>${fmt(r.profit)}</td><td>${fmt(r.dAbs)}</td><td>${fmt(r.dPct)}</td></tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+function runStressTests() {
+  const out = [];
+  const test = (name, patch, expectError = false) => {
+    const s = createScenario('stress');
+    patch(s);
+    const r = runScenario(s);
+    const ok = expectError ? r.errors.length > 0 : r.errors.length === 0;
+    out.push({ name, ok, reason: r.errors.join('; ') || 'OK' });
+  };
+
+  test('1. Нулевой мир', s => { s.addsManual = [{ date: s.start, value: 0 }]; s.addsIntervals=[]; s.autoGrowth=[]; });
+  test('2. Одиночная раскатка', s => { s.addsManual = [{ date: s.start, value: 1 }]; s.addsIntervals=[]; s.autoGrowth=[]; });
+  test('3. 100% trial churn', s => { s.constants.trial_churn_rate_month = 30; });
+  test('4. 100% paid churn', s => { s.constants.paid_churn_rate_month = 30; });
+  test('5. 100% paid_to_free', s => { s.constants.paid_to_free_rate_month = 30; });
+  test('6. Экстремальный рост', s => { s.autoGrowth = [{ start: s.start, end: s.end, usersPerMonth: 1_000_000_000 }]; });
+  test('7. Высокий churn на малой базе', s => { s.constants.free_churn_rate_month = 10; s.addsManual = [{ date: s.start, value: 3 }]; s.addsIntervals=[]; s.autoGrowth=[]; });
+  test('8. Реальные дни месяца', s => { s.start='2026-01-01'; s.end='2026-03-31'; });
+  test('9. share_calls_non_tm = 0', s => { s.constants.share_calls_non_tm = 0; });
+  test('10. Невалидные доли', s => { s.constants.share_l1 = 0.9; s.constants.share_l2 = 0.9; }, true);
+  test('11. SMS крайние случаи', s => { s.constants.sms_share_mts = 1; s.constants.sms_share_t2 = 0; s.constants.sms_cost_t2 = 10; });
+  test('12. Проверка правил L1–L4', s => { s.constants.hangup_l1 = 0; s.constants.hangup_l4 = 1; });
+  return out;
+}
+
+function renderStress() {
+  const rows = runStressTests();
+  return `<div class="panel"><table><thead><tr><th>Тест</th><th>Статус</th><th>Причина</th></tr></thead><tbody>
+    ${rows.map(r => `<tr><td>${r.name}</td><td>${r.ok?'PASS':'FAIL'}</td><td>${r.reason}</td></tr>`).join('')}
+  </tbody></table></div>`;
+}
+
+function render() {
   renderTabs();
-  const c=document.getElementById('content');
-  c.innerHTML = state.tab==='period'?renderPeriod()
-    : state.tab==='distribution'?renderDistribution()
-    : state.tab==='scenarios'?renderScenarios()
-    : state.tab==='segments'?renderSegments()
-    : state.tab==='constants'?renderConstants()
-    : renderResults();
+  const map = { variants: renderVariants, editor: renderEditor, results: renderResults, compare: renderCompare, stress: renderStress };
+  document.getElementById('view').innerHTML = map[state.tab]();
 }
+
+function pick(id){ state.selectedId=id; render(); }
+function upd(k,v){ const s=selected(); s[k]=v; saveScenarios(); render(); }
+function addScenario(){ const s=createScenario(`Вариант ${state.scenarios.length+1}`); state.scenarios.push(s); state.selectedId=s.id; state.scenarioIdsInSummary.push(s.id); saveScenarios(); render(); }
+function cloneScenario(){ const s=selected(); const c=structuredClone(s); c.id=Math.random().toString(36).slice(2,10); c.name=`${s.name} (копия)`; state.scenarios.push(c); state.selectedId=c.id; state.scenarioIdsInSummary.push(c.id); saveScenarios(); render(); }
+function deleteScenario(){ if(state.scenarios.length<2)return; state.scenarios=state.scenarios.filter(s=>s.id!==state.selectedId); state.compareIds=state.compareIds.filter(x=>x!==state.selectedId); state.scenarioIdsInSummary=state.scenarioIdsInSummary.filter(x=>x!==state.selectedId); state.selectedId=state.scenarios[0].id; saveScenarios(); render(); }
+
+function addManual(){ selected().addsManual.push({date:selected().start,value:0}); saveScenarios(); render(); }
+function addInterval(){ selected().addsIntervals.push({start:selected().start,end:selected().end,intervalMode:'total',total:0}); saveScenarios(); render(); }
+function addAuto(){ selected().autoGrowth.push({start:selected().start,end:selected().end,usersPerMonth:0}); saveScenarios(); render(); }
+function addChurnEvent(){ selected().churnEvents.push({date:selected().start,group:'paid',value:0}); saveScenarios(); render(); }
+function resetRolloutToDefaults(){ const s=selected(); const r=defaultRollout(); s.addsManual=structuredClone(r.addsManual); s.addsIntervals=structuredClone(r.addsIntervals); s.autoGrowth=structuredClone(r.autoGrowth); saveScenarios(); render(); }
+
+function delRow(kind,i){ const s=selected(); const map={manual:'addsManual',interval:'addsIntervals',auto:'autoGrowth',churn:'churnEvents'}; s[map[kind]].splice(i,1); saveScenarios(); render(); }
+function setCell(kind,i,k,v){ const s=selected(); const map={manual:'addsManual',interval:'addsIntervals',auto:'autoGrowth',churn:'churnEvents'}; const isText=(k==='group'||k==='intervalMode'||k==='date'||k==='start'||k==='end'); s[map[kind]][i][k]=isText?v:Number(v); saveScenarios(); }
+function setConst(k,v){ const s=selected(); if(v==='true'||v==='false') s.constants[k]=(v==='true'); else { const num=Number(v); s.constants[k]=Number.isFinite(num)?num:v; } saveScenarios(); }
+
+function setMode(v){ state.mode=v; render(); }
+function setMonth(v){ state.month=v; render(); }
+function toggleCompare(id,on){ if(on&&!state.compareIds.includes(id)) state.compareIds.push(id); if(!on) state.compareIds=state.compareIds.filter(x=>x!==id); render(); }
+function toggleSummaryScenario(id,on){ if(on&&!state.scenarioIdsInSummary.includes(id)) state.scenarioIdsInSummary.push(id); if(!on) state.scenarioIdsInSummary=state.scenarioIdsInSummary.filter(x=>x!==id); render(); }
+
 render();
 </script>
 </body>
