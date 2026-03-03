@@ -89,7 +89,30 @@ if(!state.scenarios.length) state.scenarios=[createScenario()];
 if(!state.selectedId) state.selectedId=state.scenarios[0].id;
 if(!state.resultScenarioIds.length) state.resultScenarioIds=state.scenarios.map(s=>s.id);
 
-function loadScenarios(){ try{return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]')}catch{return []} }
+function normalizeScenario(raw){
+  const base=createScenario('Базовый вариант');
+  const src=(raw&&typeof raw==='object')?raw:{};
+  return {
+    ...base,
+    ...src,
+    constants:{...base.constants,...(src.constants&&typeof src.constants==='object'?src.constants:{})},
+    addsManual:Array.isArray(src.addsManual)?src.addsManual:base.addsManual,
+    addsIntervals:Array.isArray(src.addsIntervals)
+      ? src.addsIntervals.map(r=>({start:r.start||base.start,end:r.end||base.end,total:Number(r.total)||0,intervalMode:r.intervalMode==='per_day'?'per_day':'total'}))
+      : base.addsIntervals,
+    autoGrowth:Array.isArray(src.autoGrowth)?src.autoGrowth:base.autoGrowth,
+    churnEvents:Array.isArray(src.churnEvents)?src.churnEvents:base.churnEvents,
+    id: typeof src.id==='string'&&src.id ? src.id : Math.random().toString(36).slice(2,10),
+    name: typeof src.name==='string'&&src.name ? src.name : base.name,
+  };
+}
+function loadScenarios(){
+  try{
+    const parsed=JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+    if(!Array.isArray(parsed)) return [];
+    return parsed.map(normalizeScenario);
+  }catch{return []}
+}
 function saveScenarios(){ localStorage.setItem(STORAGE_KEY,JSON.stringify(state.scenarios)); }
 const getSelected=()=>state.scenarios.find(s=>s.id===state.selectedId);
 
@@ -224,27 +247,6 @@ function runScenario(s){
       a.totalVariableCosts+=totalVariableCosts; a.contributionMargin+=contributionMargin;
     }
   });
-}
-
-function toCsv(rows) {
-  if (!rows.length) return '';
-  const keys = Object.keys(rows[0]);
-  return [keys.join(','), ...rows.map(r => keys.map(k => JSON.stringify(r[k] ?? '')).join(','))].join('\n');
-}
-function download(name, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
-}
-
-function aggregateWindow(result, mode, month) {
-  const rows = result.daily.filter(r => mode === 'year' || r.month === month);
-  const sum = rows.reduce((a, r) => {
-    for (const k of ['trial','paid','free','total','callsTotal','callsNonTm','interconnectRevenue','subscriptionRevenue','sttCost','llmCost','smsCost','payrollCost','infraCost','revenue','costs','profit','llmRequests','interconnectSeconds','smsCount','classReq','dialogReq','summaryReq']) a[k] += r[k] || 0;
-    return a;
-  }, { trial:0, paid:0, free:0, total:0, callsTotal:0, callsNonTm:0, interconnectRevenue:0, subscriptionRevenue:0, sttCost:0, llmCost:0, smsCost:0, payrollCost:0, infraCost:0, revenue:0, costs:0, profit:0, llmRequests:0, interconnectSeconds:0, smsCount:0, classReq:0, dialogReq:0, summaryReq:0 });
-  return { ...sum, rowsCount: rows.length };
-}
 
   const scenarioRows=SCENARIOS.map(sx=>({id:sx.id,...scenarioAgg[sx.id]}));
   const revenueInterconnect=scenarioRows.reduce((a,r)=>a+r.revenueInterconnect,0);
@@ -278,7 +280,6 @@ function aggregateWindow(result, mode, month) {
 
   return {errors,daily,scenarioRows,pnl:{revenueInterconnect,revenueSubscription,totalRevenue,stt,llmClass,llmDialog,llmSummary,llmTotal,sms,tts,totalVariableCosts,fixedPayroll,fixedInfra,totalFixedCosts,profit},warnings,unknownShare,determinedShare};
 }
-function closeFormula() { document.getElementById('formulaBg').style.display = 'none'; }
 
 function aggregateWindow(result,mode,month){
   if(mode==='year') return result;
@@ -294,7 +295,6 @@ function aggregateWindow(result,mode,month){
   });
   return runScenario({...getSelected(),start:`${month}-01`,end:`${month}-${new Date(month+'-01').getMonth()===1?28:31}`});
 }
-function setTab(tab) { state.tab = tab; render(); }
 
 function metricFormula(metricId, scenario, result){
   const c=scenario.constants,p=result.pnl;
